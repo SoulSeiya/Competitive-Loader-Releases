@@ -29,9 +29,16 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 1, 0)
+APP_VERSION = (1, 2, 0)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
+VERSION_HIGHLIGHTS = (
+    "• Marcador online con victorias y empates, conservado entre peleas y revanchas.\n"
+    "• Bloqueo de movimiento, tamaño y F11 durante el online para evitar interrupciones.\n"
+    "• Resultados confirmados por la red, sin duplicar victorias durante rollback.\n"
+    "• Corrección al inicializar la memoria de los parches.\n"
+    "• Aviso con las mejoras al abrir una nueva versión del Loader."
+)
 COMPETITIVE_SLUS_SHA1 = "28992f0d472bbb6b67cc193bb7d79b8a78bd7feb"
 DBZP_SHA1 = "4f910969e05d9b25c83af7642b60da9949a4348b"
 ROM_BASE, ROM_END = 0x100000, 0x2FF180
@@ -140,7 +147,7 @@ class IncompatibleDecompError(LoaderError):
     pass
 
 
-def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competitive_times: bool = False) -> None:
+def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competitive_times: bool = False, session_score: bool = False) -> None:
     """Opt-in laboratory profile, pinned to the locally reviewed Windows build.
 
     Keep competitive gameplay/model objects but do not inject the legacy native
@@ -158,6 +165,17 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
     CALL_WRAPPERS = {"competitive_audio.o": {"ADXT_StartAfs": "Competitive_AudioStartAfs"}} if audio_fix else {}
     if competitive_times:
         CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
+    if session_score:
+        CALL_WRAPPERS["competitive_score.o"] = {
+            "Ui_Event": "Competitive_WindowEvent",
+            "Port_NetBeginTick": "Competitive_ScoreBeginTick",
+            "Port_NetSessionBegin": "Competitive_ScoreSessionBegin",
+            "Port_NetSessionEnd": "Competitive_ScoreSessionEnd",
+            "BtlSeq_CheckBattleEnd": "Competitive_ScoreBattleEnd",
+            "_ZN5ImGui6RenderEv": "Competitive_ScoreRender",
+            "Ui_Draw": "Competitive_ScoreDraw",
+            "Ui_DrawGL": "Competitive_ScoreDrawGL",
+        }
     ENTRY_PATCH_TARGETS = {name for names in PATCHES.values() for name in names}
     CALL_WRAPPER_TARGETS = {name for hooks in CALL_WRAPPERS.values() for name in hooks}
     PATCH_TARGETS = ENTRY_PATCH_TARGETS | CALL_WRAPPER_TARGETS
@@ -1210,7 +1228,9 @@ class CoffObject:
                 "<8sIIIIIIHHI", self.data, pos
             )
             name = section_name(raw_name, self.strings)
-            raw = self.data[raw_ptr:raw_ptr + raw_size] if raw_size else b""
+            # COFF .bss carries its allocation size in SizeOfRawData, with no
+            # file contents (PointerToRawData=0). It must stay zero-filled.
+            raw = self.data[raw_ptr:raw_ptr + raw_size] if raw_size and raw_ptr and not (chars & 0x80) else b""
             self.sections[index] = Section(index, name, virtual_size, raw_size, raw_ptr,
                                            reloc_ptr, reloc_count, chars, raw)
         self.symbols: list[Symbol] = []
@@ -1453,7 +1473,7 @@ class PayloadImage:
 
 def validate_payload(payload_dir: Path, exe_path: Path) -> PayloadImage:
     if RELEASE_PROFILE:
-        use_official_online_profile(exe_path, audio_fix=True, competitive_times=True)
+        use_official_online_profile(exe_path, audio_fix=True, competitive_times=True, session_score=True)
     missing = [name for name in PATCH_OBJECTS if not (payload_dir / name).is_file()]
     if missing:
         raise LoaderError("Faltan archivos del payload: " + ", ".join(missing))

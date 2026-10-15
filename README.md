@@ -3,9 +3,13 @@ Código y publicaciones de Competitive Loader.
 
 El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
 
-## Release 1.1.0
+## Release 1.2.0
 
 El paquete publicable se construye con `build.ps1` y abre `competitive_release_gui.py`. Consulta las publicaciones del decomp al jugar y valida su compatibilidad antes de instalarlas. La primera versión admite el ejecutable revisado de v0.1.35.2: una publicación futura sin revisar no reemplaza la instalación actual.
+
+Al abrir una versión nueva aparece un aviso con sus mejoras, una sola vez por versión. Durante el online se bloquean arrastre, redimensionado, menú de sistema y F11 para evitar el bucle modal de Windows; al finalizar se restaura el comportamiento de la ventana. El botón de cerrar sigue funcionando.
+
+El marcador online muestra las victorias y empates de la sesión y se conserva entre peleas y revanchas. Solo cuenta resultados confirmados por la red y descarta observaciones que el rollback repite o corrige. Se reinicia al terminar la sesión.
 
 Cada arranque/operación guarda una carpeta en `logs/` con `local.log`, `online.log` y `session.json`; un arranque correcto añade `patch.log`. Se captura el código de salida y el informe nativo de crash si aparece. Los logs rotan al alcanzar 10 MB (tres respaldos por archivo), permanecen en el equipo y se abren desde el botón de la interfaz. Detalles de esta versión: [RELEASE-NOTES.md](RELEASE-NOTES.md).
 
@@ -26,7 +30,7 @@ Los tiempos se regeneran con `./build_times.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`.
 Esta rama incorpora un laboratorio experimental: [ONLINE-LAB.md](ONLINE-LAB.md).
 Ejecuta dos runtimes independientes por loopback y conserva logs y hashes para investigar desincronizaciones.
 
-El perfil se activa únicamente desde `local_online_test.py`. La GUI continúa usando el parche anterior; esta rama no es una actualización estable ni activa automáticamente el perfil experimental para otros usuarios.
+El laboratorio automatizado mantiene su perfil base para reproducir pruebas anteriores. La GUI de Release activa las correcciones de audio, tiempos y marcador; `--session-score` permite probar el marcador en el laboratorio con los tiempos oficiales.
 
 El laboratorio conserva las reglas competitivas y prueba las implementaciones oficiales de red, chat, pausa y tiempos de voz. Deja fuera las extensiones antiguas de red/audio y utiliza los tiempos oficiales mientras se valida la base.
 
@@ -38,8 +42,10 @@ Python 3 en Windows x64:
 python -m unittest discover -s tests -v
 ```
 
-Para construir la aplicación gráfica existente: `./build.ps1` (instala PyInstaller). Construirla no convierte el perfil de laboratorio en el perfil de la GUI.
+Para construir la aplicación gráfica de Release: `./build.ps1` (instala PyInstaller).
 
 Los objetos de `payload/` son los artefactos existentes usados por el parche. Su regeneración reproducible a partir de las modificaciones de gameplay sigue pendiente de integrar; `native/competitive_chat.cpp` contiene la extensión antigua, excluida del perfil de laboratorio.
 
-No crear una Release estable a partir de esta rama sin completar las pruebas descritas en ONLINE-LAB.md.
+El objeto del marcador se regenera con `./build_score.ps1 -Compiler RUTA_CLANG_PLUS_PLUS -ImGuiInclude RUTA_DECOMP/port/third_party/imgui -SdlInclude RUTA_SDL/include`, usando los headers del decomp v0.1.35.2 revisado. `tests/test_score_native.cpp` comprueba confirmación, revanchas, rollback, empates y reinicio de sesión. GitHub Actions ejecuta esta prueba nativa además de las pruebas Python. Las pruebas locales finitas no garantizan ausencia de desync en Internet.
+
+La prueba adicional `tests/test_window_native.cpp` crea su propia ventana SDL oculta y comprueba la instalación/restauración del procedimiento de Windows, los comandos de movimiento/tamaño y F11. Compilar con C++ Windows x64, headers/biblioteca SDL3 y user32. `--release-profile` en el laboratorio usa la petición de sesión nativa desde un estado normal guardado; el perfil base conserva su arranque anterior para reproducir sus resultados.

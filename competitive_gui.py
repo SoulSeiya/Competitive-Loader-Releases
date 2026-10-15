@@ -473,6 +473,8 @@ class CompetitiveApp:
             return
 
         self._append(f"\n— Actualizando Competitive Loader a {release['tag']} —\n")
+        if release.get("notes"):
+            self._append("Mejoras de esta actualización:\n" + release["notes"] + "\n")
         self._set_busy(True, "Descargando actualización")
 
         def worker():

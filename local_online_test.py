@@ -15,9 +15,9 @@ import time
 import competitive_loader as loader
 
 
-def configure(runtime: Path):
+def configure(runtime: Path, session_score: bool = False, release_profile: bool = False):
     exe = runtime / "Tenkaichi3Decomp.exe"
-    loader.use_official_online_profile(exe)
+    loader.use_official_online_profile(exe, audio_fix=release_profile, competitive_times=release_profile, session_score=session_score or release_profile)
     image = loader.validate_payload(loader.PAYLOAD, exe)
     image.build(0x60000000, image.pe.preferred_base)
     return exe, image
@@ -70,7 +70,7 @@ def signature(runtime: Path):
 
 def worker(args):
     runtime = (args.lab / args.worker).resolve()
-    exe, image = configure(runtime)
+    exe, image = configure(runtime, args.session_score, args.release_profile)
     env = {key: None for key in os.environ if key.startswith("BT3_")}
     env.update({
         "BT3_NET_SESSION": "1", "BT3_NET_ROLLBACK": str(args.rollback),
@@ -79,13 +79,19 @@ def worker(args):
         "BT3_VIEW": "0", "BT3_HUD_SWAP": "1", "BT3_PACED": "1",
         "BT3_NET_LAG": str(args.lag), "BT3_NET_LOSS": str(args.loss),
     })
-    if args.worker == "host":
+    if args.release_profile:
+        env["BT3_NET_SESSION"] = None
+        env["BT3_NOMOVIE"] = "1"
+        role = 1 if args.worker == "host" else 2
+        env["BT3_SESSION_TEST"] = f"{role}:127.0.0.1:{args.port}:180"
+    elif args.worker == "host":
         env["BT3_NET_HOST"] = str(args.port)
     else:
         env["BT3_NET_JOIN"] = f"127.0.0.1:{args.port}"
         if args.slow_start:
             env["BT3_TEST_SLOW_START"] = str(args.slow_start)
-    if args.script:
+    env["BT3_NET_NAME"] = "TU - MANUAL" if args.manual_host and args.worker == "host" else "RIVAL - AUTO" if args.manual_host else args.worker
+    if args.script and not (args.manual_host and args.worker == "host"):
         env["BT3_NET_SCRIPT"] = str(args.script.resolve())
     pid = loader.launch_patched(exe, image, env=env, game_log=runtime / "game.log", convert_intro=False)
     (runtime / "test-process.json").write_text(json.dumps({"pid": pid}), encoding="utf-8")
@@ -96,7 +102,8 @@ def worker(args):
     kernel.WaitForSingleObject.restype = ctypes.c_uint32
     kernel.TerminateProcess.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
     kernel.CloseHandle.argtypes = [ctypes.c_void_p]
-    handle = kernel.OpenProcess(0x00100001, False, pid)  # SYNCHRONIZE | PROCESS_TERMINATE
+    kernel.GetExitCodeProcess.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
+    handle = kernel.OpenProcess(0x00101001, False, pid)  # SYNCHRONIZE | QUERY_LIMITED_INFORMATION | TERMINATE
     if not handle:
         raise loader.win_error("seguir el proceso de prueba")
     try:
@@ -106,6 +113,15 @@ def worker(args):
         elif status == 0xFFFFFFFF:
             kernel.TerminateProcess(handle, 1)
             raise loader.win_error("esperar el proceso de prueba")
+        kernel.WaitForSingleObject(handle, 5000)
+        code = ctypes.c_uint32()
+        if not kernel.GetExitCodeProcess(handle, ctypes.byref(code)):
+            raise loader.win_error("leer la salida del proceso de prueba")
+        (runtime / "test-process.json").write_text(json.dumps({
+            "pid": pid, "exit_code": f"0x{code.value:08X}", "timed_stop": status == 0x102,
+        }), encoding="utf-8")
+        if code.value != 0:
+            raise loader.LoaderError(f"El juego terminó con 0x{code.value:08X}; revisa game.log.")
     finally:
         kernel.CloseHandle(handle)
 
@@ -151,7 +167,7 @@ def run(args):
     if signature(root / "host") != signature(root / "guest"):
         raise loader.LoaderError("Los datos, partidas o ejecutables de las dos instancias difieren.")
     for side in ("host", "guest"):
-        configure(root / side)
+        configure(root / side, args.session_score, args.release_profile)
     children = []
     try:
         for side in ("host", "guest"):
@@ -160,6 +176,12 @@ def run(args):
                        "--worker", side, "--port", str(args.port), "--seconds", str(args.seconds),
                        "--rollback", str(args.rollback), "--lag", str(args.lag), "--loss", str(args.loss),
                        "--slow-start", str(args.slow_start)]
+            if args.manual_host:
+                command += ["--manual-host"]
+            if args.release_profile:
+                command += ["--release-profile"]
+            if args.session_score:
+                command += ["--session-score"]
             if args.script:
                 command += ["--script", str(args.script.resolve())]
             stream = (root / side / "worker.log").open("w", encoding="utf-8")
@@ -196,6 +218,9 @@ def main():
     p.add_argument("--loss", type=int, choices=range(0, 101), default=0)
     p.add_argument("--slow-start", type=int, default=0)
     p.add_argument("--script", type=Path)
+    p.add_argument("--manual-host", action="store_true", help="Host uses real controls; only guest plays the input script")
+    p.add_argument("--release-profile", action="store_true", help="Include audio, competitive timers and scoreboard")
+    p.add_argument("--session-score", action="store_true", help="Test the persistent scoreboard with official timers")
     p = sub.add_parser("analyze")
     p.add_argument("--lab", type=Path, required=True)
     args = parser.parse_args()

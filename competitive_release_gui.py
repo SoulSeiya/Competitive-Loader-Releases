@@ -1,5 +1,6 @@
 """Public Competitive Loader: reviewed upstream updates and local diagnostics."""
 import ctypes
+import json
 import os
 from pathlib import Path
 import sys
@@ -30,8 +31,31 @@ class ReleaseApp(CompetitiveApp):
         tk.Button(root, text="Abrir registros locales y online", command=self.open_logs,
                   bg=self.PANEL, fg=self.TEXT).pack(side="bottom", fill="x")
         self._append("Perfil competitivo: intro y audio corregidos; chat y pausa oficiales.\n"
+                     "Marcador online persistente entre peleas y revanchas.\n"
                      "Las actualizaciones del decomp se validan antes de instalarlas.\n"
                      "Ambos jugadores necesitan el mismo Loader, decomp y memory.\n")
+        if "--smoke-test" not in sys.argv:
+            root.after(600, self.show_version_notes)
+
+    def show_version_notes(self):
+        marker = core.HERE / "loader-version-seen.json"
+        try:
+            previous = json.loads(marker.read_text(encoding="utf-8")).get("version")
+        except (OSError, ValueError, AttributeError):
+            previous = None
+        if previous == core.APP_VERSION_TEXT:
+            return
+        messagebox.showinfo(
+            f"Novedades · Competitive Loader {core.APP_VERSION_TEXT}",
+            f"Competitive Loader {core.APP_VERSION_TEXT}\n\n{core.VERSION_HIGHLIGHTS}",
+            parent=self.root,
+        )
+        try:
+            temporary = marker.with_suffix(".tmp")
+            temporary.write_text(json.dumps({"version": core.APP_VERSION_TEXT}), encoding="utf-8")
+            os.replace(temporary, marker)
+        except OSError as exc:
+            self._append(f"No se pudo guardar la versión del aviso: {exc}\n")
 
     def open_logs(self):
         LOGS.mkdir(parents=True, exist_ok=True)

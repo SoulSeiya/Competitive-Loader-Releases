@@ -7,6 +7,7 @@ build_gui/work/
 CompetitiveRuntime/
 .competitive-update/
 competitive_loader.json
+loader-version-seen.json
 *.zip
 *.ps2
 *.iso
