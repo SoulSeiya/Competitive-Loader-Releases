@@ -22,7 +22,7 @@ static void risingTournamentPanel(bool host) {
                 risingSend(10);
             }
         }
-        ImGui::Text("%s | FT%u | hasta %u personajes | %u inscritos", t.title, t.ft, t.characters, t.enrolled);
+        ImGui::Text("%s | FT%u | 180 segundos | hasta %u personajes | %u inscritos", t.title, t.ft, t.characters, t.enrolled);
         ImGui::InputText("Tus personajes (separados por coma)", roster, sizeof(roster));
         ImGui::TextWrapped("Inscripcion declarada por nombres. La seleccion de combate aun no bloquea personajes fuera de esta lista.");
         if (ImGui::Button(t.self_enrolled ? "Actualizar mi inscripcion" : "Inscribirme al torneo")) {
@@ -40,6 +40,19 @@ static void risingTournamentPanel(bool host) {
         ImGui::Text("%s | FT%u | %u inscritos", t.title, t.ft, t.enrolled);
         if (t.status == 2) {
             ImGui::Text("GG - %s", t.mode ? "Prueba completada" : t.champion ? t.champion_name : "Sin campeon");
+            if(!t.mode && t.champion && t.enrolled==3 && t.count==3) {
+                const RisingMatch &final=t.matches[2];
+                const unsigned second=final.p1==t.champion ? final.p2 : final.p1;
+                const char *secondName=final.p1==t.champion ? final.name2 : final.name1;
+                ImGui::SeparatorText("Podio");
+                ImGui::Text("1. %s",t.champion_name);
+                ImGui::Text("2. %s",secondName);
+                for(unsigned i=0;i<2;++i) {
+                    const RisingMatch &m=t.matches[i];
+                    if(m.p1 && m.p1!=t.champion && m.p1!=second) ImGui::Text("3. %s",m.name1);
+                    if(m.p2 && m.p2!=t.champion && m.p2!=second) ImGui::Text("3. %s",m.name2);
+                }
+            }
         } else {
             ImGui::Text("Cruce actual: #%u | Tu puesto: %s", t.current,
                 t.role == 1 ? "Jugador 1" : t.role == 2 ? "Jugador 2" : "Esperando en la sala");

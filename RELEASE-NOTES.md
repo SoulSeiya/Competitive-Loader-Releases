@@ -1,3 +1,8 @@
+Competitive Loader 1.5.5 — candidato de prueba.
+El tiempo online se aplica al combate desde la opcion acordada por el anfitrion.
+Correccion de la entrega de codigos de combate a traves del servicio de salas.
+La prueba de cuatro participantes se entrega aparte; el menu normal conserva su interfaz.
+
 Competitive Loader 1.5.4 — candidato en validación.
 
 - Menú normal de torneo sin botones de laboratorio, bots de prueba ni simuladores.

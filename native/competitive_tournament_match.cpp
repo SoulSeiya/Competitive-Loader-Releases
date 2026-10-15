@@ -78,6 +78,7 @@ static void risingTournamentPump(unsigned wins1, unsigned wins2, unsigned winner
             if (risingState.users[i].id == risingState.self_id) Port_NetNameSet(risingState.users[i].name);
         Port_NetOptions(8, -2);
         // Preserve personal Host defaults: these rules belong only to this tournament match.
+        // Choice 0 becomes gBattleTimeLimitTbl[1]=180 in Competitive_TimeBattleLoad.
         Port_NetRulesSet(t.characters > 1 ? 1 : 0, 0, 0);
         sRules = CompetitiveFtRules(sRules, t.ft);
         const int result = Port_LobbyStartCode(t.role == 1, t.role == 1 ? "" : m.code);

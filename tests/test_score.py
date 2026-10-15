@@ -7,6 +7,8 @@ import unittest
 
 
 class ScoreTests(unittest.TestCase):
+    def test_tournament_first_time_choice_is_180_seconds_online(self):
+        self._native("test_times_native.cpp", "Timers OK")
     def test_replay_uses_two_native_views_only_for_offline_playback(self):
         self._native("test_replay_view_native.cpp", "Replay view OK")
 

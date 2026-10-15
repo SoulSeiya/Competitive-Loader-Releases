@@ -1,4 +1,4 @@
-# Rising Battle 1.5.4 — salas y torneos BTC
+# Rising Battle 1.5.5 — salas y torneos BTC
 
 ## Entrar
 

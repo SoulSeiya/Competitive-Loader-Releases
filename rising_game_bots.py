@@ -46,13 +46,18 @@ class OwnedJob:
 
 
 class GameBotProcesses:
-    def __init__(self, server, bots, runtime, logger):
+    def __init__(self, server, bots, runtime, logger, local_spectator=False, human_pid=None):
         import competitive_loader as core
         self.server,self.bots,self.runtime,self.log=server,bots,Path(runtime),logger
         self.root=core.HERE/"logs"/"tournament-lab"/uuid.uuid4().hex
         self.root.mkdir(parents=True)
         self.children={}
         self.failed=set()
+        self.local_spectator = local_spectator
+        self.human_pid = human_pid
+        self.human_minimized = False
+        self.current_match = 0
+        self.view_bot = 0
         self.stop=threading.Event()
         self.thread=threading.Thread(target=self._work,daemon=True)
         self.thread.start()
@@ -60,7 +65,8 @@ class GameBotProcesses:
     def _start(self,user):
         uid=user["id"]; root=self.root/(str(uid)+"-"+uuid.uuid4().hex[:8]);root.mkdir()
         config=root/"worker.json"
-        config.write_text(json.dumps(dict(source=str(self.runtime),root=str(root),port=self.server.port,bot_id=uid)),encoding="utf-8")
+        config.write_text(json.dumps(dict(source=str(self.runtime),root=str(root),port=self.server.port,bot_id=uid,
+            local_view=self.local_spectator and uid==self.view_bot, background=self.local_spectator and uid!=self.view_bot)),encoding="utf-8")
         import competitive_loader as core
         command=[sys.executable]
         if not getattr(sys,"frozen",False):command.append(str(core.RESOURCE_ROOT/"competitive_release_gui.py"))
@@ -70,7 +76,7 @@ class GameBotProcesses:
             p=subprocess.Popen(command,env=env,stdout=output,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
         job=OwnedJob(p)
         (root/"job-ready").touch()
-        self.children[uid]=dict(process=p,job=job,root=root,last_active=time.monotonic())
+        self.children[uid]=dict(process=p,job=job,root=root,last_active=time.monotonic(),placed=False)
         self.log.info("TOURNAMENT_GAME_BOT_STARTED member=%s worker_pid=%s",uid,p.pid)
 
     def _retire(self,uid):
@@ -89,6 +95,13 @@ class GameBotProcesses:
                     active=set()
                     if t.status=="running" and t.current:
                         m=t.matches[t.current-1];active={m["p1"],m["p2"]}
+                    current=t.current or 0
+                    view_bot=m["p1"] if current and all(t.entrants[p].get("game_bot") for p in active) else 0
+                if self.local_spectator and current != self.current_match:
+                    self._restore_human()
+                    # The winning bot gets a fresh background client for the human final.
+                    for uid in list(self.children):self._retire(uid)
+                    self.current_match,self.view_bot=current,view_bot
                 with self.bots.lock:users=list(self.bots.users)
                 for user in users:
                     uid=user["id"]
@@ -104,9 +117,66 @@ class GameBotProcesses:
                         with self.server.room.lock:self.server.room._announce(f"Bot #{uid}: se cerró su proceso. Consulta el registro antes de resolver el cruce.")
                     elif uid not in active and time.monotonic()-item["last_active"]>12:
                         self._retire(uid)
+                if self.local_spectator:self._place_test_windows()
         except Exception:self.log.exception("TOURNAMENT_GAME_BOT_MANAGER_FAILED")
         finally:
+            self._restore_human()
             for uid in list(self.children):self._retire(uid)
+
+    @staticmethod
+    def _windows(pid):
+        user32=C.WinDLL("user32",use_last_error=True)
+        user32.GetWindowThreadProcessId.argtypes=[W.HWND,C.POINTER(W.DWORD)]
+        user32.IsWindowVisible.argtypes=[W.HWND]
+        callback=C.WINFUNCTYPE(W.BOOL,W.HWND,W.LPARAM);found=[]
+        @callback
+        def visit(hwnd,_):
+            owner=W.DWORD();user32.GetWindowThreadProcessId(hwnd,C.byref(owner))
+            if owner.value==pid and user32.IsWindowVisible(hwnd):found.append(hwnd)
+            return True
+        user32.EnumWindows.argtypes=[callback,W.LPARAM]
+        user32.EnumWindows(visit,0)
+        return user32,found
+
+    def _restore_human(self):
+        if self.human_minimized and self.human_pid:
+            user32,windows=self._windows(self.human_pid)
+            user32.ShowWindow.argtypes=[W.HWND,C.c_int];user32.SetForegroundWindow.argtypes=[W.HWND]
+            for hwnd in windows:user32.ShowWindow(hwnd,9);user32.SetForegroundWindow(hwnd)
+        self.human_minimized=False
+
+    def _place_test_windows(self):
+        for uid,item in list(self.children.items()):
+            if item["placed"]:continue
+            info=item["root"]/"game-process.json"
+            if not info.exists():continue
+            pid=json.loads(info.read_text(encoding="utf-8"))["pid"]
+            k=item["job"].kernel
+            k.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];k.OpenProcess.restype=W.HANDLE
+            k.IsProcessInJob.argtypes=[W.HANDLE,W.HANDLE,C.POINTER(W.BOOL)]
+            handle=k.OpenProcess(0x1000,False,pid);owned=W.BOOL()
+            if not handle:continue
+            valid=k.IsProcessInJob(handle,item["job"].handle,C.byref(owned)) and owned.value
+            k.CloseHandle(handle)
+            if not valid:continue
+            user32,windows=self._windows(pid)
+            if not windows:continue
+            user32.SetWindowPos.argtypes=[W.HWND,W.HWND,C.c_int,C.c_int,C.c_int,C.c_int,W.UINT]
+            user32.ShowWindow.argtypes=[W.HWND,C.c_int];user32.SetForegroundWindow.argtypes=[W.HWND]
+            visible=uid==self.view_bot
+            for hwnd in windows:
+                # Off-screen windows retain a drawable/UI pump; minimizing would stop matchmaking.
+                ok=user32.SetWindowPos(hwnd,None,60 if visible else -28000,60 if visible else -28000,
+                    1280 if visible else 640,720 if visible else 480,0x14)
+                if not ok:break
+            else:
+                item["placed"]=True
+                if visible:
+                    if self.human_pid:
+                        hu,hw=self._windows(self.human_pid);hu.ShowWindow.argtypes=[W.HWND,C.c_int]
+                        for hwnd in hw:hu.ShowWindow(hwnd,6)
+                        self.human_minimized=bool(hw)
+                    user32.SetForegroundWindow(windows[0])
 
     def focus(self):
         # Explicit product button: focus only a descendant of an owned job, never another user process.
@@ -151,6 +221,7 @@ class GameBotProcesses:
         if self.thread.is_alive():
             # Job closure still terminates only the owned helper trees.
             for item in list(self.children.values()):item["job"].close()
+        self._restore_human()
 
 
 def run_worker(config_path):
@@ -174,6 +245,10 @@ def run_worker(config_path):
     image=core.validate_payload(core.PAYLOAD,runtime/"Tenkaichi3Decomp.exe")
     env={k:None for k in os.environ if k.startswith("BT3_") or k.startswith("BTC_")}
     env.update(BTC_ROOM_BRIDGE=bridge.name,BTC_TOURNAMENT_BOT=str(config["bot_id"]),BT3_DATA=str((source/"gamedata").resolve()),BT3_NOMOVIE="1",BT3_PACED="1",BT3_GS_VERBOSE="1",SDL_AUDIODRIVER="dummy")
+    if config.get("local_view"):
+        env.update(BTC_LOCAL_SPECTATOR="1",BT3_WINDOW="1280x720")
+    elif config.get("background"):
+        env.update(BT3_WINDOW="640x480",BT3_SCALE="1")
     env["BT3_HASH"] = str(runtime/"state-hashes.txt")
     k,_=core._windows_api();handle=None
     k.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];k.OpenProcess.restype=W.HANDLE

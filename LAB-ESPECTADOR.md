@@ -42,3 +42,16 @@ recibe entradas de una pelea online, no implementa late join, no distribuye una
 snapshot inicial ni conecta automáticamente a los espectadores del bracket. El
 siguiente paso será capturar entradas confirmadas y estado inicial del combate,
 distribuirlos a observadores y comprobar su simulación sin alterar a los jugadores.
+
+## Prueba vigente de cuatro participantes (1.5.5)
+
+El usuario sustituyó el ensayo de tres por dos humanos y dos bots reales.
+El host abre el controlador con --four-player-room-test-host y pulsa Iniciar.
+El coordinador de ese proceso crea salas de cuatro, prepara dos bots locales e
+inscribe a los dos humanos. No modifica el coordinador normal. Al iniciar fuerza
+los cruces humano/bot y una final humana, aun si perdieron las semifinales: es
+un circuito de prueba anunciado en el chat, no eliminación competitiva normal.
+FT1 y tiempo negociado 0, aplicado al índice real 1 de la tabla (180 segundos).
+
+El túnel lo inicia el usuario; el proceso cloudflared se mantiene separado del
+paquete invitado. Véase service/PRUEBA-CON-AMIGOS.txt. No incluye espectador online.

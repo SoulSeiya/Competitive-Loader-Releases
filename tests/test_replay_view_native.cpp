@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <vector>
-static const char *flag;
+static const char *flag,*live;
 static int online,active,split,cinematic,delegated;
 static std::vector<int> views,layouts;
 alignas(8) static unsigned char setup[0x5A8];
@@ -12,7 +12,7 @@ extern "C" void Hud_SetReplayMode(int mode) {hud=mode;}
 extern "C" void Demo_SetupBattle() {++setups;}
 extern "C" void *Battle_GetSetup() {return setup;}
 extern "C" void BattleSetup_Finish() {++finishes;}
-extern "C" const char *SDL_getenv(const char *) {return flag;}
+extern "C" const char *SDL_getenv(const char *name) {return !strcmp(name,"BTC_LOCAL_SPECTATOR") ? live : flag;}
 extern "C" int Port_NetSession() {return online;}
 extern "C" int BattleReplay_IsActive() {return active;}
 extern "C" int Battle_IsSplitScreen() {return split;}
@@ -36,6 +36,10 @@ int main() {
     cinematic=1;assert(Competitive_ReplayCameraOverride()==7);cinematic=0;
     assert(delegated==5);
     assert(views.size()==2);
+    live="1";online=1;
+    assert(Competitive_ReplayCameraOverride()==0);
+    assert(views.size()==4);
+    live=nullptr;online=0;
     flag=nullptr;Competitive_ReplayCpuSetup();assert(setups==1 && finishes==0);
     *(int *)(setup+8)=7;
     flag="1";Competitive_ReplayCpuSetup();

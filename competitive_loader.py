@@ -29,7 +29,7 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 4)
+APP_VERSION = (1, 5, 5)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
@@ -1588,6 +1588,7 @@ def launch_patched(
     launch_env.setdefault("BTC_DEV_TOOLS", None)
     launch_env.setdefault("BTC_REPLAY_RECORD_CPU", None)
     launch_env.setdefault("BTC_REPLAY_SPLIT", None)
+    launch_env.setdefault("BTC_LOCAL_SPECTATOR", None)
     if RELEASE_PROFILE:
         from btc_matchmaking import environment
         try:

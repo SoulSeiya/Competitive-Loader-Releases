@@ -1,9 +1,56 @@
 import unittest
+from unittest.mock import patch
 from rising_room import PROTOCOL, RoomError
 from rising_service import Coordinator, ServiceClient, ServiceServer, room_code
 
 
 class ServiceTests(unittest.TestCase):
+    def test_four_player_lab_human_bot_semis_then_both_humans_even_after_losses(self):
+        with patch('rising_game_bots.GameBotProcesses') as manager:
+            coordinator=Coordinator(combat_test_runtime='mock-runtime')
+            server=ServiceServer(port=0,coordinator=coordinator)
+            try:
+                url=f'http://127.0.0.1:{server.port}'
+                host=ServiceClient(url)
+                s=host.send('create',name='Host',title='Four',capacity=8,protocol=PROTOCOL,edition='BTC')
+                self.assertEqual(len(s['users']),3);self.assertEqual(s['capacity'],4)
+                guest=ServiceClient(url,s['room_code'])
+                s=guest.send('join',name='Friend',protocol=PROTOCOL,edition='BTC')
+                self.assertEqual(s['tournament']['enrolled'],4)
+                human_ids={host.send('poll')['self_id'],s['self_id']}
+                room=coordinator.rooms[host.code]
+                clients={u['id']:ServiceClient(url,host.code,token) for token,u in room.users.items()}
+                s=host.send('tournament_start')
+                for mid in (1,2):
+                    t=s['tournament'];m=t['matches'][mid-1]
+                    self.assertIn(m['p1'],human_ids)
+                    self.assertNotIn(m['p2'],human_ids)
+                    for uid in (m['p1'],m['p2']):s=clients[uid].send('tournament_report',tournament_id=t['id'],match=mid,score=[0,1])
+                t=s['tournament'];m=t['matches'][2]
+                self.assertEqual({m['p1'],m['p2']},human_ids)
+                for uid in human_ids:s=clients[uid].send('tournament_report',tournament_id=t['id'],match=3,score=[1,0])
+                self.assertEqual(s['tournament']['status'],'finished')
+                self.assertEqual(s['tournament']['champion'],m['p1'])
+            finally:server.close()
+            manager.return_value.close.assert_called_once()
+
+    def test_room_code_and_combat_code_do_not_collide(self):
+        server=ServiceServer(port=0)
+        try:
+            url=f"http://127.0.0.1:{server.port}"
+            host=ServiceClient(url)
+            s=host.send("create",name="Host",title="Codes",capacity=3,protocol=PROTOCOL,edition="BTC")
+            guest=ServiceClient(url,s["room_code"])
+            guest.send("join",name="Guest",protocol=PROTOCOL,edition="BTC")
+            for c in (host,guest):c.send("tournament_register",roster=["A"])
+            s=host.send("tournament_start");t=s["tournament"]
+            owner=host if t["matches"][0]["p1"]==s["self_id"] else guest
+            room=owner.code
+            owner.send("tournament_code",tournament_id=t["id"],match=1,code="ABCDEF")
+            self.assertEqual(owner.code,room)
+            self.assertEqual(guest.send("poll")["tournament"]["matches"][0]["code"],"ABCDEF")
+            self.assertEqual(host.send("poll")["room_code"],"BTC-"+room)
+        finally:server.close()
     def test_remote_host_bots_chat_permissions_kick_and_cleanup(self):
         server=ServiceServer(port=0)
         try:

@@ -61,6 +61,23 @@ class Tournament:
         self.revision = 0
         self.mode = "elimination"
         self.challenger = 0
+        self.spectator_test_host = 0
+        self.four_test_humans = []
+
+    def prepare_four_player_test(self):
+        humans=[p for p in self.entrants if not self.entrants[p]["bot"]]
+        bots=[p for p in self.entrants if self.entrants[p].get("game_bot")]
+        if self.status!="registration" or len(self.entrants)!=4 or len(humans)!=2 or len(bots)!=2:
+            raise TournamentError("La prueba requiere dos jugadores conectados y dos bots de combate")
+        self.four_test_humans=humans
+        self.ft=1
+        self.announce("PRUEBA: humano contra bot en cada semifinal; despues ambos humanos juegan la final, incluso si pierden contra el bot. FT1 / 180 segundos.")
+
+    def prepare_spectator_test(self, uid):
+        if self.status != "registration" or uid not in self.entrants or self.entrants[uid]["bot"]:
+            raise TournamentError("La prueba necesita un humano y dos bots de combate")
+        self.spectator_test_host = uid
+        self.revision += 1
 
     def prepare_challenge(self, uid):
         """Local lab schedule: the person plays every bot, including after a loss."""
@@ -117,6 +134,14 @@ class Tournament:
         if not 2 <= len(self.entrants) <= 32:
             raise TournamentError("Se necesitan entre 2 y 32 inscritos")
         players = list(self.entrants)
+        if self.four_test_humans:
+            bots=[p for p in players if p not in self.four_test_humans]
+            players=self.four_test_humans+[bots[1],bots[0]]
+        if self.spectator_test_host:
+            human = self.spectator_test_host
+            if len(players) != 3 or human not in players or any(not self.entrants[p].get("game_bot") for p in players if p != human):
+                raise TournamentError("La prueba necesita exactamente un humano y dos bots de combate")
+            players = [human] + [p for p in players if p != human]
         if self.mode == "all_vs_host":
             opponents = [p for p in players if p != self.challenger]
             if len(players) != 4 or any(not self.entrants[p].get("game_bot") for p in opponents):
@@ -129,7 +154,8 @@ class Tournament:
             self.announce(f"Inicia {self.title}: tres FT{self.ft}, todos contra {self._name(self.challenger)}.")
             self._advance()
             return
-        self.shuffle(players)
+        if not self.spectator_test_host and not self.four_test_humans:
+            self.shuffle(players)
         size = 1 << (len(players) - 1).bit_length()
         seeds = [1, 2]
         while len(seeds) < size:
@@ -176,6 +202,8 @@ class Tournament:
                 left, right = (self.matches[i-1]["winner"] for i in match["sources"])
                 if left is None or right is None:
                     continue
+                if self.four_test_humans and match["id"]==len(self.matches):
+                    left,right=self.four_test_humans
                 match["p1"], match["p2"] = left, right
             a, b = match["p1"], match["p2"]
             if a is None or b is None:
@@ -200,6 +228,8 @@ class Tournament:
                 self.announce(f"GG - Prueba completada: {self._name(self.challenger)}, {wins} de {len(self.matches)} sets ganados.")
             else:
                 self.announce("Torneo terminado. " + ("Campeón: " + self._name(self.champion) if self.champion else "Sin campeón."))
+                for place, uid in enumerate(self.podium(), 1):
+                    self.announce(f"Podio {place}: {self._name(uid)}")
         elif self.current and self.current != before:
             match = self.matches[self.current-1]
             self.announce(f"Próxima pelea #{match['id']}: {self._name(match['p1'])} vs {self._name(match['p2'])} — FT{self.ft}.")
@@ -266,6 +296,17 @@ class Tournament:
         self._finish(match, match["p1"], score, "simulación de bots")
         self._advance()
 
+    def podium(self):
+        if self.status != "finished" or self.mode != "elimination" or not self.champion:
+            return []
+        final = self.matches[-1]
+        second = next((p for p in (final["p1"], final["p2"]) if p and p != self.champion), 0)
+        result = [self.champion] + ([second] if second else [])
+        # Three entrants have exactly one other defeated player; no third-place match needed.
+        if len(self.entrants) == 3:
+            result.extend(p for p in self.entrants if p not in result)
+        return result
+
     def snapshot(self, uid):
         current = self.matches[self.current-1] if self.current else None
         role = 1 if current and current["p1"] == uid else 2 if current and current["p2"] == uid else 0
@@ -274,6 +315,7 @@ class Tournament:
             self_roster=self.entrants.get(uid, {}).get("roster", []), role=role,
             revision=self.revision, current=self.current or 0, champion=self.champion or 0,
             champion_name=self._name(self.champion) if self.champion else "",
+            podium=[dict(place=i, id=p, name=self._name(p)) for i,p in enumerate(self.podium(),1)],
             participants=list(self.entrants.values()), matches=[])
         for m in self.matches:
             result["matches"].append({k: m[k] for k in ("id", "round", "p1", "p2", "winner", "score", "state", "code")})

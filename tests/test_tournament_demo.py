@@ -10,6 +10,41 @@ from rising_tournament import Tournament, TournamentError
 
 
 class DemoTests(unittest.TestCase):
+    def test_three_entrants_bots_play_then_human_final_and_podium(self):
+        t=Tournament(lambda _:None)
+        for uid in (1,2,3):t.register(dict(id=uid,name=str(uid),bot=uid!=1,game_bot=uid!=1),["A"])
+        t.configure("FT1 / 180",1,1)
+        t.prepare_spectator_test(1);t.start()
+        self.assertEqual(t.current,2)
+        self.assertEqual(t.snapshot(1)["role"],0)
+        m=t.matches[1];self.assertEqual({m["p1"],m["p2"]},{2,3})
+        for uid in (2,3):t.report(uid,t.id,2,[1,0])
+        self.assertEqual(t.current,3);self.assertEqual(t.snapshot(1)["role"],1)
+        self.assertEqual((t.matches[2]["p1"],t.matches[2]["p2"]),(1,2))
+        for uid in (1,2):t.report(uid,t.id,3,[0,1])
+        self.assertEqual(t.podium(),[2,1,3])
+        self.assertEqual([p["place"] for p in t.snapshot(1)["podium"]],[1,2,3])
+
+    @unittest.skipUnless(os.name=="nt","Windows room bridge")
+    def test_three_member_spectator_lab_bridge_uses_two_actual_bots(self):
+        from rising_room_bridge import RoomBridge,Command
+        bridge=RoomBridge();bridge.runtime=Path("mock-runtime");bridge.game_pid=123
+        try:
+            with patch("rising_game_bots.GameBotProcesses") as manager:
+                bridge._execute(Command(op=24,name=b"Human"))
+                bridge._publish()
+                state=type(bridge.shared.state).from_buffer_copy(bytes(bridge.shared.state))
+                self.assertEqual(state.count,3)
+                self.assertEqual(state.tournament.ft,1)
+                self.assertEqual(sum(bool(u.flags&4) for u in state.users[:3]),2)
+                self.assertTrue(manager.call_args.kwargs["local_spectator"])
+                self.assertEqual(manager.call_args.kwargs["human_pid"],123)
+                bridge._execute(Command(op=12));bridge._publish()
+                self.assertEqual(bridge.shared.state.tournament.current,2)
+                self.assertEqual(bridge.shared.state.tournament.role,0)
+                bridge._execute(Command(op=5))
+                manager.return_value.close.assert_called_once()
+        finally:bridge.close()
     def test_game_bot_is_not_a_simulated_result_and_human_keeps_p1(self):
         t=Tournament(lambda _:None,shuffle=lambda _:None)
         t.register(dict(id=1,name="Game bot",bot=True,game_bot=True),["A"])

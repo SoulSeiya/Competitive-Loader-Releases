@@ -171,3 +171,13 @@ La fixture nativa de sala ImGui/SDL pasa. El menú normal oculta crear bots, sim
 La recepción de entradas online, incorporación tardía de espectadores y asociación del visor con el bracket siguen pendientes. No se ha publicado una Release ni se presenta esta reproducción local como espectador online ya implementado.
 
 El EXE final 1.5.4 pasó --smoke-test, --smoke-room, --smoke-service y --smoke-runtime con salida cero. Se ejecutó también su ruta --watch-replay y se confirmó la entrada en la cámara dividida desde el log del juego. Ese ensayo empaquetado se detuvo cerrando únicamente el job propio del visor.
+
+## Candidato 1.5.5 — prueba con dos humanos y dos bots
+
+El ensayo local previo de tres entró en una semifinal real con las cámaras P1/P2 activas y comparó 1578 muestras de combate sin diferencias observadas. La inspección posterior descubrió que la opción pedida no fijaba el índice final: la tabla contenía 180 en la entrada 1, pero el setup usaba la entrada 3 (360). Se detuvo el ensayo y se corrigió Competitive_TimeBattleLoad para aplicar la opción negociada al setup real y a su copia de replay antes de cargar la batalla. La regresión cubre las cinco opciones, rematch y retorno offline.
+
+El intento posterior de publicar el código de combate desde un ServiceClient reveló una colisión entre el código de sala y el código del cruce. Se separan en room_code y code, conservando compatibilidad con admisiones anteriores. Una prueba HTTP reproduce la publicación y recepción sin perder la identidad de sala.
+
+El usuario pidió sustituir el ensayo largo por un paquete para dos personas y dos bots. El coordinador del modo explícito de prueba crea los bots de combate en el PC host, prepara ambos cruces humano/bot y garantiza una final humana incluso tras perder contra bots. La prueba HTTP con el gestor de procesos sustituido comprueba esas dos derrotas y la final, autorizaciones y cierre. Las peleas reales de ese recorrido y el túnel entre ambos equipos quedan para su prueba manual. No se afirma que ese torneo completo ya se haya jugado ni que exista espectador remoto.
+
+Pasan 67 pruebas locales. La comprobación del EXE congelado verificó la GUI, salas, servicio, controlador de host y resolución del payload. El servicio empaquetado en loopback registró dos clientes humanos y dos bots de combate, con cuatro inscritos y FT1; no inició las peleas en ese smoke. El túnel público debe arrancarlo el usuario desde el controlador.

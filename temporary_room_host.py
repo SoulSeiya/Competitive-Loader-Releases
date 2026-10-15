@@ -52,6 +52,12 @@ class TestHost:
         commands=[([sys.executable,"--room-service","--bind","127.0.0.1","--port",str(port)] if getattr(sys,"frozen",False)
                   else [sys.executable,str(Path(__file__).with_name("rising_service.py")),"--bind","127.0.0.1","--port",str(port)]),
                   [str(helper),"tunnel","--no-autoupdate","--url",f"http://127.0.0.1:{port}"]]
+        if "--four-player-room-test-host" in sys.argv:
+            runtime=Path(core.load_config().get("runtime",core.DEFAULT_RUNTIME))
+            if not (runtime/"Tenkaichi3Decomp.exe").is_file():
+                messagebox.showerror("BTC","Prepara tu instalación del juego en este Loader antes de iniciar la prueba.",parent=self.root)
+                return
+            commands[0].extend(["--combat-test-runtime",str(runtime.resolve())])
         self.started=time.monotonic()
         try:
             for name,command in zip(("service","tunnel"),commands):

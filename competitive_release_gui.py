@@ -40,7 +40,7 @@ class ReleaseApp(CompetitiveApp):
                      "Marcador online persistente entre peleas y revanchas.\n"
                      "Las actualizaciones del decomp se validan antes de instalarlas.\n"
                      "Ambos jugadores necesitan el mismo Loader, decomp y memory.\n")
-        if "--smoke-test" not in sys.argv and "--tournament-test" not in sys.argv:
+        if not any(flag in sys.argv for flag in ("--smoke-test","--tournament-test","--spectator-tournament-test")):
             root.after(600, self.show_version_notes)
 
     def show_version_notes(self):
@@ -146,7 +146,9 @@ class ReleaseApp(CompetitiveApp):
                 image.build(0x60000000, image.pe.preferred_base)
                 self.room_bridge.runtime = runtime
                 env = {"BTC_ROOM_BRIDGE": self.room_bridge.name}
+                if "--spectator-tournament-test" in sys.argv:env["BTC_TOURNAMENT_DEMO_USER"]="1"
                 pid = self.session.launch(exe, image, env=env)
+                self._game_started(pid)
                 return pid
             self._run("Comprobando actualizaciones e iniciando Competitive",
                       "Competitive iniciado. Mantén el Loader abierto mientras juegas.", launch)
@@ -167,8 +169,22 @@ class ReleaseApp(CompetitiveApp):
             image = core.validate_payload(core.PAYLOAD, prepared)
             image.build(0x60000000, image.pe.preferred_base)
             self.room_bridge.runtime = prepared.parent
-            return self.session.launch(prepared, image, env={"BTC_ROOM_BRIDGE": self.room_bridge.name})
+            env={"BTC_ROOM_BRIDGE":self.room_bridge.name}
+            if "--spectator-tournament-test" in sys.argv:env["BTC_TOURNAMENT_DEMO_USER"]="1"
+            pid=self.session.launch(prepared, image, env=env)
+            self._game_started(pid)
+            return pid
         self._run("Preparando la instalación competitiva", "Instalación lista y Competitive iniciado.", install)
+
+    def _game_started(self,pid):
+        self.room_bridge.game_pid=pid
+        if "--spectator-tournament-test" in sys.argv:
+            from rising_room_bridge import Command
+            shared=self.room_bridge.shared
+            if shared.command_seq!=shared.ack_seq:raise core.LoaderError("La sala está ocupada; reinicia la prueba")
+            shared.command=Command(op=24,name=b"UT Rising")
+            shared.command_seq+=1
+            self._append("Prueba de tres: pulsa Iniciar torneo. Primero observas bots vs bots; despues juegas la final. FT1 / 180 segundos.\n")
 
     def close_app(self):
         if self.session and self.session.running:
@@ -203,7 +219,7 @@ def main():
         app.room_bridge.close()
         root.destroy()
     else:
-        if "--tournament-test" in sys.argv: root.after(200, app.play)
+        if "--tournament-test" in sys.argv or "--spectator-tournament-test" in sys.argv: root.after(200, app.play)
         root.mainloop()
 
 
@@ -213,7 +229,7 @@ if __name__ == "__main__":
         replay=Path(sys.argv[sys.argv.index("--watch-replay")+1]).resolve()
         result=watch(Path(core.load_config().get("runtime",core.DEFAULT_RUNTIME)),replay)
         if result:raise SystemExit(result)
-    elif "--room-test-host" in sys.argv or "--smoke-room-test-host" in sys.argv:
+    elif any(flag in sys.argv for flag in ("--room-test-host","--smoke-room-test-host","--four-player-room-test-host")):
         from temporary_room_host import main as host_main
         host_main()
     elif "--tournament-bot-worker" in sys.argv:

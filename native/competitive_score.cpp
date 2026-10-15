@@ -113,6 +113,7 @@ extern "C" void Competitive_ScoreRender(void) {
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
                 ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoSavedSettings)) {
             ImGui::TextUnformatted(text);
+            if(SDL_getenv("BTC_LOCAL_SPECTATOR")) ImGui::TextUnformatted("ESPECTADOR LOCAL | P1 / P2 | 180 segundos");
             if (target) {
                 SDL_snprintf(text, sizeof(text), "FT%u", target);
                 ImGui::TextUnformatted(text);

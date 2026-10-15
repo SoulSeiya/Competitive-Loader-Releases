@@ -28,8 +28,10 @@ extern "C" void Competitive_ReplayCpuSetup(void) {
 
 extern "C" int Competitive_ReplayCameraOverride(void) {
     const char *enabled=SDL_getenv("BTC_REPLAY_SPLIT");
-    if(!enabled || strcmp(enabled,"1") || Port_NetSession() ||
-       !BattleReplay_IsActive() || !Battle_IsSplitScreen() || DemoCam_IsActive())
+    const char *local=SDL_getenv("BTC_LOCAL_SPECTATOR");
+    const bool localLive=local && !strcmp(local,"1") && SDL_getenv("BTC_TOURNAMENT_BOT") && Port_NetSession();
+    const bool replay=enabled && !strcmp(enabled,"1") && !Port_NetSession() && BattleReplay_IsActive();
+    if((!localLive && !replay) || !Battle_IsSplitScreen() || DemoCam_IsActive())
         return BtlCam_UpdateOverride();
     BtlCam_SelectView(0);
     BtlCam_SetLayout(1,1);
@@ -38,8 +40,9 @@ extern "C" int Competitive_ReplayCameraOverride(void) {
     static bool logged;
     if(!logged) {
         logged=true;
-        Hud_SetReplayMode(1); // The replay's normal full HUD; its initial mode hides the gauges.
-        ScoreLog(stderr,"bt3: replay spectator: native P1/P2 split view active; offline playback\n");
+        if(replay) Hud_SetReplayMode(1);
+        ScoreLog(stderr,localLive ? "bt3: local tournament spectator: live native P1/P2 split view active\n" :
+            "bt3: replay spectator: native P1/P2 split view active; offline playback\n");
     }
     return 0; // Battle_Update / BtlScene draw both views from this one simulation.
 }

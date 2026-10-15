@@ -71,6 +71,7 @@ class RoomBridge:
         self.client = client
         self.preserve_membership = preserve_membership
         self.runtime = None
+        self.game_pid = None
         self.game_bots = None
         self.server = None
         self.local_service = None
@@ -175,7 +176,7 @@ class RoomBridge:
             self.invite = snapshot["room_code"]
             self.notice = "Sala BTC conectada por codigo. F2: bracket. Tab: chat para toda la sala."
             return
-        if op == 19:
+        if op in (19, 24):
             if self.client:
                 raise RoomError("Sal de la sala actual para preparar la prueba")
             if not self.runtime:
@@ -186,22 +187,30 @@ class RoomBridge:
                 self.local_service = ServiceServer(port=0)
             self.address = f"http://127.0.0.1:{self.local_service.port}"
             self.client = ServiceClient(self.address)
+            spectator = op == 24
             self.snapshot = self.client.send("create",name=decoded(command.name) or "UT Rising",
-                                            title="Prueba BTC: tu + 3 bots",capacity=4,protocol=PROTOCOL,edition="BTC")
+                                            title="Prueba BTC: semifinal bots y final contigo" if spectator else "Prueba BTC: tu + 3 bots",
+                                            capacity=3 if spectator else 4,protocol=PROTOCOL,edition="BTC")
             self.invite = self.snapshot["room_code"]
             # Private loopback adapter lets owned game workers use their existing transport.
             room = self.local_service.coordinator.rooms[self.client.code]
             self.server = RoomServer("", "", 0, bind="127.0.0.1", room=room)
-            self.snapshot = self.client.send("tournament_config", title="Todos contra mi - prueba BTC", ft=1, characters=1)
+            self.snapshot = self.client.send("tournament_config", title="Semifinal y final BTC - 180 segundos" if spectator else "Todos contra mi - prueba BTC", ft=1, characters=1)
             self.snapshot = self.client.send("tournament_register", roster=["Libre (prueba)"])
             self.bots = RoomBots(self.server, game_bots=True)
-            if self.bots.add(3) != 3:
-                raise RoomError("No se pudieron registrar los tres bots")
+            count = 2 if spectator else 3
+            if self.bots.add(count) != count:
+                raise RoomError("No se pudieron registrar los bots de combate")
             with self.server.room.lock:
-                self.server.room.tournament.prepare_challenge(self.server.room.host_id)
-            self.game_bots = GameBotProcesses(self.server, self.bots, self.runtime, self.log)
+                if spectator:self.server.room.tournament.prepare_spectator_test(self.server.room.host_id)
+                else:self.server.room.tournament.prepare_challenge(self.server.room.host_id)
+            if spectator:
+                self.game_bots = GameBotProcesses(self.server, self.bots, self.runtime, self.log,
+                    local_spectator=True, human_pid=self.game_pid)
+            else:self.game_bots = GameBotProcesses(self.server, self.bots, self.runtime, self.log)
             self.snapshot = self.client.send("poll")
-            self.notice = "Cuatro inscritos: tu y tres bots de combate. Todos contra ti, incluso si pierdes un set. Elige FT y pulsa Iniciar prueba."
+            self.notice = ("Tres inscritos. FT1, 180 s. Pulsa Iniciar torneo: observaras bots vs bots y jugaras la final contra el ganador." if spectator else
+                           "Cuatro inscritos: tu y tres bots de combate. Todos contra ti, incluso si pierdes un set. Elige FT y pulsa Iniciar prueba.")
             return
         if op == 20:
             if not self.game_bots:
@@ -304,7 +313,7 @@ class RoomBridge:
                     except (RoomError, OSError, ValueError, KeyError, TypeError) as exc:
                         self.notice = str(exc)
                         self.log.warning("ROOM_COMMAND_FAILED op=%s reason=%s", command.op, self.notice)
-                        if command.op in (1, 2, 9, 19):
+                        if command.op in (1, 2, 9, 19, 24):
                             self._leave()
                     self._publish()
                     # Acknowledgement guarantees the matching state is already visible.

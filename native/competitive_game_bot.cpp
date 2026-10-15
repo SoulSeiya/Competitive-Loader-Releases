@@ -47,7 +47,8 @@ extern "C" int Competitive_RisingMainMenu(int section) {
         if (bot) {
             SDL_Window *window = GsDraw_Window();
             if (window) {
-                char title[96]; SDL_snprintf(title,sizeof(title),"BTC Bot %d - vista local de prueba",risingBotId());
+                char title[96]; SDL_snprintf(title,sizeof(title),SDL_getenv("BTC_LOCAL_SPECTATOR") ?
+                    "BTC - Espectador local P1/P2 - FT1 - 180 segundos" : "BTC Bot %d - vista local de prueba",risingBotId());
                 SDL_SetWindowTitle(window,title);
             }
         }

@@ -11,6 +11,8 @@ import secrets
 import threading
 import time
 import urllib.parse
+from pathlib import Path
+import logging
 
 from rising_room import Room, RoomClient, RoomError, PROTOCOL
 
@@ -29,12 +31,38 @@ def room_code(value):
 
 
 class Coordinator:
-    def __init__(self, clock=time.monotonic, capacity=256):
+    def __init__(self, clock=time.monotonic, capacity=256, combat_test_runtime=None):
         self.clock, self.capacity = clock, capacity
         self.lock = threading.RLock()
         self.rooms = {}
         self.limits = {}
         self.bots = {}
+        self.combat_test_runtime = Path(combat_test_runtime) if combat_test_runtime else None
+        self.combat_labs = {}
+
+    def _close_lab(self, code):
+        lab=self.combat_labs.pop(code,None)
+        if lab:
+            manager,bots,server=lab
+            manager.close();bots.close();server.close()
+
+    def close(self):
+        for code in list(self.combat_labs):self._close_lab(code)
+
+    def _prepare_lab(self, code, room):
+        from rising_room import RoomServer
+        from rising_room_bots import RoomBots
+        from rising_game_bots import GameBotProcesses
+        room.tournament.configure("PRUEBA: 2 jugadores + 2 bots / FT1 / 180s",1,1)
+        room.tournament.register(room.users[room.host_token],["Libre (prueba)"])
+        server=RoomServer("","",0,bind="127.0.0.1",room=room)
+        bots=RoomBots(server,game_bots=True)
+        try:
+            if bots.add(2)!=2:raise RoomError("No se pudieron crear los dos bots de combate")
+            manager=GameBotProcesses(server,bots,self.combat_test_runtime,logging.getLogger("competitive.four-test"),local_spectator=True)
+        except Exception:
+            bots.close();server.close();raise
+        self.combat_labs[code]=(manager,bots,server)
 
     def _cleanup(self):
         for code, room in list(self.rooms.items()):
@@ -47,6 +75,7 @@ class Coordinator:
                 if room.closed:
                     del self.rooms[code]
                     self.bots.pop(code, None)
+            if room.closed:self._close_lab(code)
         now = self.clock()
         for ip, events in list(self.limits.items()):
             while events and now-events[0] >= 3600:
@@ -77,11 +106,12 @@ class Coordinator:
                 code = "".join(secrets.choice(ALPHABET) for _ in range(6))
                 while code in self.rooms:
                     code = "".join(secrets.choice(ALPHABET) for _ in range(6))
-                room = Room(data.get("title"), data.get("name"), data.get("capacity", 8), clock=self.clock)
+                room = Room(data.get("title"), data.get("name"), 4 if self.combat_test_runtime else data.get("capacity", 8), clock=self.clock)
                 self.rooms[code] = room
+                if self.combat_test_runtime:self._prepare_lab(code,room)
                 values = dict(op="poll", token=room.host_token)
             else:
-                code = room_code(data.get("code"))
+                code = room_code(data.get("room_code", data.get("code")))
                 room = self.rooms.get(code)
                 if room is None:
                     raise RoomError("La sala no existe o ha caducado")
@@ -89,6 +119,9 @@ class Coordinator:
                 if op == "join":
                     # Knowing a code invites a person, never authorizes a bot or host action.
                     values.update(key=room.key, bot=False, game_bot=False)
+                if op=="tournament_start" and code in self.combat_labs:
+                    if data.get("token")!=room.host_token:raise RoomError("Solo el anfitrión puede iniciar la prueba")
+                    room.tournament.prepare_four_player_test()
             if op in ("bots_add", "bots_remove"):
                 with room.lock:
                     token = data.get("token")
@@ -120,6 +153,10 @@ class Coordinator:
                         tokens.clear()
                     values = dict(op="poll", token=token)
             result = room.handle(values)
+            if op=="join" and code in self.combat_labs:
+                with room.lock:
+                    room.tournament.register(room.users[result["token"]],["Libre (prueba)"])
+                    result=room.handle(dict(op="poll",token=result["token"]))
         result["room_code"] = "BTC-"+code
         return result
 
@@ -164,6 +201,7 @@ class ServiceServer:
         self.thread.start()
     def close(self):
         self.http.shutdown(); self.http.server_close(); self.thread.join(timeout=3)
+        self.coordinator.close()
 
 
 class ServiceClient(RoomClient):
@@ -178,7 +216,9 @@ class ServiceClient(RoomClient):
         self.url = url.strip().rstrip("/") + "/v1/rooms"
         self.code = room_code(code) if code else ""
     def send(self, op, **values):
-        result = super().send(op, code=self.code, **values)
+        # A tournament_code operation has its own combat "code". Keep the lobby
+        # address separate so it cannot collide with that value.
+        result = super().send(op, room_code=self.code, **values)
         if op != "leave":
             self.code = room_code(result.get("room_code"))
         return result
@@ -188,8 +228,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bind", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7010)
+    parser.add_argument("--combat-test-runtime",type=Path)
     args = parser.parse_args()
-    server = ServiceServer(args.bind, args.port)
+    server = ServiceServer(args.bind, args.port,coordinator=Coordinator(combat_test_runtime=args.combat_test_runtime))
     print(f"BTC coordinator listening on {args.bind}:{server.port}", flush=True)
     try:
         while True:
