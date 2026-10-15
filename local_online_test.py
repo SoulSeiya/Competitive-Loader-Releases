@@ -113,9 +113,13 @@ def worker(args):
 def read_hashes(path: Path):
     result = {}
     if path.exists():
-        for line in path.read_text(errors="replace").splitlines():
+        for line in path.read_text(errors="replace").splitlines(keepends=True):
+            if not line.endswith("\n"):
+                continue  # A timed stop can leave the final record half-written.
             parts = line.split()
             if len(parts) >= 3 and parts[0].isdigit():
+                if "hp" in parts and any(label not in parts for label in ("pos", "clock", "rnd")):
+                    continue
                 # Keep the LAST simulation of a blank, after rollback corrections.
                 result[int(parts[0])] = parts
     return result

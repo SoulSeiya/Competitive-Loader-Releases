@@ -25,7 +25,7 @@ class OnlineLabTests(unittest.TestCase):
                 (root / side).mkdir()
             good = "32 aaaa bbbb hp 100 100 pos 0 0 0 0 0 0 clock 60 rnd 0\n"
             wrong = good.replace("hp 100 100", "hp 80 100")
-            (root / "host/state-hashes.txt").write_text(wrong + good)
+            (root / "host/state-hashes.txt").write_text(wrong + good + "33 aaaa bbbb hp 100")
             (root / "guest/state-hashes.txt").write_text(good)
             self.assertEqual(lab.analyze(root)["result"], "NO_DIVERGENCE_OBSERVED")
             (root / "guest/state-hashes.txt").write_text(wrong)
