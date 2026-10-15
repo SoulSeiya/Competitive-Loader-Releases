@@ -11,6 +11,8 @@ Construcción de esta interfaz: `python -m PyInstaller --noconfirm --distpath di
 
 La interfaz experimental vuelve a convertir el vídeo de apertura competitivo a fotogramas completos de tipo I, necesarios para el decodificador actual. La primera vez conserva `ZS3USOP.original.PSS` y prepara una copia compatible; no cambia la ISO ni las reglas online. El laboratorio automatizado conserva su configuración anterior para reproducir los resultados registrados.
 
+La interfaz también activa una corrección independiente del audio AFS2: respeta la marca de fin CRI en el reproductor físico, bajo el bloqueo del stream. No cambia los archivos, no calcula índices usando el tamaño de Player y no escribe gPortAdxView ni su duración lógica online. El objeto se regenera con `./build_audio.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. Las pruebas nativas están en `tests/test_audio_native.cpp` (compilar y ejecutar con un compilador C++ de Windows x64).
+
 Esta rama incorpora un laboratorio experimental: [ONLINE-LAB.md](ONLINE-LAB.md).
 Ejecuta dos runtimes independientes por loopback y conserva logs y hashes para investigar desincronizaciones.
 

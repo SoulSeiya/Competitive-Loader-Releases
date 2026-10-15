@@ -31,3 +31,9 @@ La GUI conserva el parche anterior. Este experimento solo se activa mediante loc
 Tras incorporar la interfaz experimental se reportó un fallo en el vídeo de apertura. La intro competitiva incluía fotogramas P/B y esta interfaz había omitido su conversión, aunque el decodificador oficial sigue reconstruyendo solo imágenes I. Se restauró la conversión únicamente en el arranque gráfico y se incluyeron el conversor y sus licencias en ese EXE.
 
 Se preparó la copia compatible de la instalación local, conservando ZS3USOP.original.PSS. Una comprobación compilada con plat_mpeg2.c de 0.1.35.2 recorrió el archivo convertido: 2.472 cuadros decodificados y 2.295 cambios de imagen a 512x448. La segunda llamada al preparador reutilizó el vídeo sin modificarlo. El EXE gráfico actualizado pasó la comprobación de apertura de interfaz. No se repitió una partida online por este cambio del vídeo de apertura.
+
+## Audio de la interfaz experimental
+
+Se añadió competitive_audio.o como único wrapper de audio, independiente de competitive_chat.o. Recorta la reproducción AFS2 al encontrar una marca de fin CRI bajo el bloqueo del stream. Solo utiliza el prefijo revisado del Player, no sizeof(Player), no indexa sPlayers y no escribe gPortAdxView ni archivos de audio. Se mantiene fijado el SHA-256 del decomp compatible.
+
+Las pruebas nativas verificaron EOF mono/estéreo, alineación de cabeceras, fallo del bloqueo, alcance AFS2, un Player de mayor tamaño y conservación de los bytes originales. Tres ADX de la instalación competitiva confirmaron el recorte de muestras: 49083.bin, 148669 a 116608; 49085.bin, 144143 a 116512; 49092.bin, 173991 a 116576. El payload con audio resolvió todas las referencias. La apertura del EXE gráfico pasó; el arranque real de verificación aplicó 17 entradas y un wrapper de audio. No es una prueba de escucha ni una validación online de esta revisión.

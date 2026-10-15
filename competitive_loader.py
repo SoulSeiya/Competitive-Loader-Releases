@@ -131,7 +131,7 @@ class LoaderError(RuntimeError):
     pass
 
 
-def use_official_online_profile(exe_path: Path) -> None:
+def use_official_online_profile(exe_path: Path, audio_fix: bool = False) -> None:
     """Opt-in laboratory profile, pinned to the locally reviewed Windows build.
 
     Keep competitive gameplay/model objects but do not inject the legacy native
@@ -143,12 +143,13 @@ def use_official_online_profile(exe_path: Path) -> None:
     global PATCHES, CALL_WRAPPERS, ENTRY_PATCH_TARGETS, CALL_WRAPPER_TARGETS
     global PATCH_TARGETS, PATCH_OBJECTS, PATCH_SYMBOLS, ONLINE_TIME_LABEL_PATCHES
     PATCHES = {name: targets for name, targets in PATCHES.items() if name != "battle_hud_e_d.o"}
-    CALL_WRAPPERS = {}
+    CALL_WRAPPERS = {"competitive_audio.o": {"ADXT_StartAfs": "Competitive_AudioStartAfs"}} if audio_fix else {}
     ENTRY_PATCH_TARGETS = {name for names in PATCHES.values() for name in names}
-    CALL_WRAPPER_TARGETS = set()
-    PATCH_TARGETS = set(ENTRY_PATCH_TARGETS)
-    PATCH_OBJECTS = tuple(PATCHES)
+    CALL_WRAPPER_TARGETS = {name for hooks in CALL_WRAPPERS.values() for name in hooks}
+    PATCH_TARGETS = ENTRY_PATCH_TARGETS | CALL_WRAPPER_TARGETS
+    PATCH_OBJECTS = tuple(PATCHES) + tuple(CALL_WRAPPERS)
     PATCH_SYMBOLS = {name: name for name in ENTRY_PATCH_TARGETS}
+    PATCH_SYMBOLS.update({target: symbol for hooks in CALL_WRAPPERS.values() for target, symbol in hooks.items()})
     ONLINE_TIME_LABEL_PATCHES = {}
 
 

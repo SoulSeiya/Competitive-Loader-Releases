@@ -55,7 +55,7 @@ class ExperimentalApp(CompetitiveApp):
 
         def launch():
             exe = runtime / "Tenkaichi3Decomp.exe"
-            core.use_official_online_profile(exe)
+            core.use_official_online_profile(exe, audio_fix=True)
             if not (runtime / "gamedata" / ".competitive-v8.4.1.json").is_file():
                 raise core.LoaderError("Esta carpeta no tiene los datos competitivos preparados.")
             image = core.validate_payload(core.PAYLOAD, exe)
