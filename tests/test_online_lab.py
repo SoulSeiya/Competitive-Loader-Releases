@@ -3,7 +3,9 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import competitive_loader as loader
 import local_online_test as lab
 

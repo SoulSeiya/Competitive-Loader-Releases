@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import ctypes
 import json
 import os
@@ -51,11 +52,20 @@ def prepare(args):
 
 
 def signature(runtime: Path):
-    # Full game tree, settings and save: no incompatible pair is knowingly started.
+    # Full game tree and save: no incompatible pair is knowingly started.
     paths = [runtime / "Tenkaichi3Decomp.exe", runtime / "Tenkaichi3Decomp.dat"]
     for name in ("gamedata", "saves"):
         paths.extend(p for p in (runtime / name).rglob("*") if p.is_file())
-    return {p.relative_to(runtime).as_posix(): loader.sha256_file(p) for p in sorted(paths)}
+    result = {}
+    def fingerprint(path):
+        return path.relative_to(runtime).as_posix(), loader.sha256_file(path)
+    print(f"Verificando {runtime.name}: {len(paths)} archivos...", flush=True)
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        for number, (name, digest) in enumerate(pool.map(fingerprint, paths), 1):
+            result[name] = digest
+            if number % 10000 == 0:
+                print(f"  {runtime.name}: {number}/{len(paths)}", flush=True)
+    return result
 
 
 def worker(args):
@@ -82,12 +92,20 @@ def worker(args):
     kernel, _ = loader._windows_api()
     kernel.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
     kernel.OpenProcess.restype = ctypes.c_void_p
+    kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    kernel.WaitForSingleObject.restype = ctypes.c_uint32
+    kernel.TerminateProcess.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    kernel.CloseHandle.argtypes = [ctypes.c_void_p]
     handle = kernel.OpenProcess(0x00100001, False, pid)  # SYNCHRONIZE | PROCESS_TERMINATE
     if not handle:
         raise loader.win_error("seguir el proceso de prueba")
     try:
-        if kernel.WaitForSingleObject(handle, args.seconds * 1000) == 0x102:
+        status = kernel.WaitForSingleObject(handle, args.seconds * 1000)
+        if status == 0x102:
             kernel.TerminateProcess(handle, 0)
+        elif status == 0xFFFFFFFF:
+            kernel.TerminateProcess(handle, 1)
+            raise loader.win_error("esperar el proceso de prueba")
     finally:
         kernel.CloseHandle(handle)
 

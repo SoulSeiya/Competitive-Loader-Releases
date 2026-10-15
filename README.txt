@@ -44,8 +44,8 @@ Actualizaciones de Competitive Loader
 -------------------------------------
 Al abrir la aplicación se consulta la última Release publicada en el
 repositorio público de distribución `SoulSeiya/Competitive-Loader-Releases`.
-Ese repositorio contiene únicamente publicaciones binarias y un README mínimo;
-el código fuente permanece privado. Si existe una versión posterior, el botón superior muestra
+Ese repositorio contiene las publicaciones y ahora también el código del Loader.
+Si existe una versión posterior, el botón superior muestra
 "Actualizar Loader". La descarga e instalación solo comienza al pulsarlo;
 después el loader se reinicia con la versión nueva.
 
