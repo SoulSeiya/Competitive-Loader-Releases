@@ -39,6 +39,8 @@ jobs:
           if ($p.ExitCode -ne 0) { throw 'Falló la apertura del EXE' }
           $room = Start-Process -FilePath '.\dist\Competitive Loader.exe' -ArgumentList '--smoke-room' -WindowStyle Hidden -Wait -PassThru
           if ($room.ExitCode -ne 0) { throw 'Falló la sala empaquetada' }
+          $service = Start-Process -FilePath '.\dist\Competitive Loader.exe' -ArgumentList '--smoke-service' -WindowStyle Hidden -Wait -PassThru
+          if ($service.ExitCode -ne 0) { throw 'Falló el servicio de códigos empaquetado' }
           python -m unittest discover -s tests -v
           if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas del paquete' }
       - uses: actions/upload-artifact@v4

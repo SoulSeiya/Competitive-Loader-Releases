@@ -12,11 +12,12 @@ extern "C" { uint32_t sRules; }
 #include "../native/competitive_room.cpp"
 bool nativeNetOpen = true;
 static int originalMenuCalls;
+static int originalCancels, originalChatSent;
 extern "C" void OriginalNetMenu(void) { ++originalMenuCalls; }
 extern "C" void Ui_Toggle(void) { nativeNetOpen = false; }
-extern "C" void Port_LobbyCancel(void) {}
+extern "C" void Port_LobbyCancel(void) {++originalCancels;}
 extern "C" int Competitive_WindowEvent(const SDL_Event *) { nativeNetOpen = false; return 1; }
-extern "C" { volatile int gPortNetMenuRequest; }
+extern "C" { volatile int gPortNetMenuRequest; int gPortChatTyping; }
 extern "C" { uint32_t gProgress; int gPortScreen, gPortMenuMode; }
 extern "C" int OriginalMainMenuRun(int) { return 7; }
 extern "C" int Port_PadRead(int, unsigned char *data) { data[0]=0xab; return 1; }
@@ -38,6 +39,10 @@ void Dma_Flush(void) {}
 void Dma_ResetBuffers(void) { ++resets; }
 int sceGsSyncPath(int, unsigned short) { return 0; }
 int Port_NetSession(void) { return online; }
+int Port_NetActive(void) { return online; }
+unsigned PortChat_Count(void) {return 77;}
+int PortChat_Line(unsigned,RisingChatLine*) {return 7;}
+int PortChat_Say(const char*) {++originalChatSent;return 1;}
 void Port_NetRulesSet(int type, int, int) { sRules = (114u << 16) | (unsigned)type; }
 void Port_NetOptions(int roll, int delay) { assert(roll == 8 && delay == -2); }
 void Port_NetNameSet(const char *) {}
@@ -83,13 +88,26 @@ int main(int argc, char **argv) {
     risingCommand.port = (uint32_t)atoi(argv[2]);
     assert(risingSend(1)); waitCommand();
     assert(risingState.connected && risingState.count == 1);
+    assert(Competitive_RoomNetActive()==0);
+    risingUiEnter();assert(Competitive_RoomNetActive()==1);risingUiLeave();
+    assert(Competitive_RoomNetActive()==0);
+    assert(Competitive_RoomChatSay("Tab reutilizado") == 1);waitCommand();
+    assert(originalChatSent==0);
+    assert(Competitive_RoomChatCount()==2);
+    SDL_Delay(550);
+    RisingChatLine line={};assert(Competitive_RoomChatLine(1,&line)==1 && strstr(line.text,"Tab reutilizado"));
+    SDL_Event f2={};f2.type=SDL_EVENT_KEY_DOWN;f2.key.scancode=SDL_SCANCODE_F2;
+    assert(Competitive_RisingEvent(&f2)==1 && risingBracketOpen);
+    f2.key.repeat=true;Competitive_RisingEvent(&f2);assert(risingBracketOpen);
+    f2.type=SDL_EVENT_KEY_UP;Competitive_RisingEvent(&f2);assert(risingBracketOpen);
+    f2.type=SDL_EVENT_KEY_DOWN;f2.key.repeat=false;Competitive_RisingEvent(&f2);assert(!risingBracketOpen);
     assert(strncmp(risingState.invite, "BTC1-", 5) == 0);
     frame(); frame();
     assert(ImGui::GetDrawData()->CmdListsCount > 0);
     strcpy(risingCommand.text, "Anuncio desde el menu nativo");
     assert(risingSend(3)); waitCommand();
-    assert(risingState.chat_count == 2);
-    assert(strstr(risingState.chat[1], "Anuncio desde el menu nativo"));
+    assert(risingState.chat_count == 3);
+    assert(strstr(risingState.chat[2], "Anuncio desde el menu nativo"));
     assert(risingSend(6)); waitCommand();
     assert(risingState.users[0].flags == 1);
     assert(risingSend(7, 3)); waitCommand();
@@ -109,6 +127,17 @@ int main(int argc, char **argv) {
     assert(risingState.connected);
     assert(risingSend(5)); waitCommand();
     assert(!risingState.connected);
+    assert(Competitive_RoomChatCount()==77 && Competitive_RoomChatSay("native")==1 && originalChatSent==1);
+    ImGui::NewFrame();
+    risingSelectTournament=true;
+    Competitive_RisingBegin("Dragon Net Battle",NULL,0);
+    ImGui::End();ImGui::Render();
+    ImGui::NewFrame();
+    risingSelectTournament=true;
+    assert(!Competitive_RisingBegin("Dragon Net Battle",NULL,0));
+    ImGui::End();ImGui::Render();
+    assert(risingNetTab);
+    risingNetTab=false;
     unsigned char pad[18] = {};
     risingBotIdentifier = 0;
     assert(Competitive_BotPadRead(0,pad)==1 && pad[0]==0xab);
@@ -134,6 +163,7 @@ int main(int argc, char **argv) {
     t.role = 1;
     risingTournamentPump(0, 0, 0, 0);
     assert(starts == 1 && startHost == 1 && CompetitiveFt(sRules) == 2);
+    const int cancelsBefore=originalCancels;Competitive_RoomLobbyCancel();assert(originalCancels==cancelsBefore);
     assert(fake.command.op == 17 && strcmp(fake.command.text, "ABCDEF") == 0);
     fake.ack_seq = fake.command_seq;
     strcpy(t.matches[0].code,"ABCDEF"); // The room acknowledged and published the native code.

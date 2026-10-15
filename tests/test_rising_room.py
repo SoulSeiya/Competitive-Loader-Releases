@@ -102,9 +102,32 @@ class RoomTests(unittest.TestCase):
 
 @unittest.skipUnless(os.name == "nt", "Windows named shared memory")
 class BridgeTests(unittest.TestCase):
+    def test_acknowledgement_waits_for_published_state(self):
+        import threading
+        from rising_room_bridge import RoomBridge,Command
+        from unittest.mock import patch
+        server=RoomServer("Order", "Host", 0, bind="127.0.0.1")
+        bridge=RoomBridge(client=RoomClient("127.0.0.1",server.port,server.room.host_token))
+        entered,release=threading.Event(),threading.Event()
+        publish=bridge._publish
+        def slow_publish():
+            publish();entered.set();release.wait(3)
+        try:
+            with patch.object(bridge,"_publish",slow_publish):
+                bridge.shared.command=Command(op=6);bridge.shared.command_seq+=1
+                self.assertTrue(entered.wait(3))
+                self.assertNotEqual(bridge.shared.command_seq,bridge.shared.ack_seq)
+                self.assertEqual(bridge.shared.state.users[0].flags,1)
+                release.set()
+                until=time.monotonic()+3
+                while bridge.shared.command_seq!=bridge.shared.ack_seq and time.monotonic()<until:time.sleep(.01)
+                self.assertEqual(bridge.shared.command_seq,bridge.shared.ack_seq)
+        finally:
+            release.set();bridge.close();server.close()
+
     def test_shared_memory_two_loaders_chat_ready_and_expulsion(self):
         from rising_room_bridge import RoomBridge, Shared, Command, State, User, decoded
-        self.assertEqual([C.sizeof(t) for t in (User, State, Command, Shared)], [76, 34140, 844, 35004])
+        self.assertEqual([C.sizeof(t) for t in (User, State, Command, Shared)], [76, 34144, 844, 35008])
         # Bind only loopback for the real HTTP server in this test.
         from unittest.mock import patch
         import rising_room_bridge as bridge_module

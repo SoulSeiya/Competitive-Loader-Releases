@@ -29,10 +29,13 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 0)
+APP_VERSION = (1, 5, 1)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Pestaña Torneos BTC dentro de Dragon Net Battle.\n"
+    "• F2 muestra el bracket; Tab usa el chat nativo para toda la sala.\n"
+    "• Servicio propio de códigos BTC de seis caracteres, probado localmente; alojamiento público pendiente.\n"
     "• Rising Battle en la entrada Tenkaichi Budokai Online: torneos BTC de 2 a 32 inscritos.\n"
     "• Temática, FT1–FT5, inscripción y bracket con pases libres y anuncios de cruces.\n"
     "• Prueba Todos contra mí: tú y tres bots, tres sets consecutivos sin eliminación.\n"
@@ -185,6 +188,11 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
             "_ZL9build_netv": "Competitive_RisingMenu",
             "_ZN5ImGui5BeginEPKcPbi": "Competitive_RisingBegin",
             "Ui_Event": "Competitive_RisingEvent",
+            "Port_NetActive": "Competitive_RoomNetActive",
+            "PortChat_Count": "Competitive_RoomChatCount",
+            "PortChat_Line": "Competitive_RoomChatLine",
+            "PortChat_Say": "Competitive_RoomChatSay",
+            "Port_LobbyCancel": "Competitive_RoomLobbyCancel",
             "Port_NetRulesSet": "Competitive_FtRulesSet",
             "Port_LobbyStartQuick": "Competitive_FtQuickStart",
             "_ZN5ImGui12TextDisabledEPKcz": "Competitive_FtHostRow",

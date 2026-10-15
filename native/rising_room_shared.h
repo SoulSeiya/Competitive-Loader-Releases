@@ -16,6 +16,7 @@ struct RisingState {
     RisingUser users[32];
     char chat[64][385];
     char invite[385];
+    uint32_t chat_serial;
     RisingTournament tournament;
 };
 struct RisingCommand {
@@ -33,6 +34,6 @@ struct RisingShared {
 static_assert(sizeof(RisingUser) == 76, "Room user ABI");
 static_assert(sizeof(RisingMatch) == 180, "Room match ABI");
 static_assert(sizeof(RisingTournament) == 6108, "Tournament ABI");
-static_assert(sizeof(RisingState) == 34140, "Room state ABI");
+static_assert(sizeof(RisingState) == 34144, "Room state ABI");
 static_assert(sizeof(RisingCommand) == 844, "Room command ABI");
-static_assert(sizeof(RisingShared) == 35004, "Room shared ABI");
+static_assert(sizeof(RisingShared) == 35008, "Room shared ABI");

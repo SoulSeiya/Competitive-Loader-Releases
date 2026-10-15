@@ -18,7 +18,8 @@ int Port_NetSession(void);
 
 extern "C" int Competitive_TournamentMode(void) {
     risingModeActive = 1;
-    risingRoomRequested = true;
+    risingRoomRequested = false;
+    risingSelectTournament = true;
     gPortNetMenuRequest = 1;
     ColorFade_StartIn(0, 0, 0, 0x14);
     fprintf(stderr, "bt3: Rising Battle: TBO tournament mode entered\n");

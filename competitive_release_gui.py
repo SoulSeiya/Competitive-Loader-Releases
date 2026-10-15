@@ -175,6 +175,13 @@ if __name__ == "__main__":
     elif "--smoke-room" in sys.argv:
         from rising_room import smoke_test
         smoke_test()
+    elif "--smoke-service" in sys.argv:
+        from rising_service import smoke_test
+        smoke_test()
+    elif "--room-service" in sys.argv:
+        from rising_service import main as service_main
+        sys.argv.remove("--room-service")
+        service_main()
     elif "--apply-loader-update" in sys.argv:
         i = sys.argv.index("--apply-loader-update")
         core.apply_loader_update(int(sys.argv[i + 1]), Path(sys.argv[i + 2]), Path(sys.argv[i + 3]))

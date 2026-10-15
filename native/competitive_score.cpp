@@ -98,6 +98,7 @@ extern "C" void Competitive_ScoreRender(void) {
     target = tracker.target; winner = tracker.setWinner;
     SDL_UnlockSpinlock(&scoreLock);
     risingTournamentPump(a, b, winner, target);
+    risingSocialDraw();
     if (show) {
         const int me = Port_NetMe() == 1 ? 1 : 0;
         const char *left = Port_NetName(me), *right = Port_NetName(1 - me);
@@ -169,13 +170,15 @@ static bool needs_score_frame(unsigned before) {
     SDL_UnlockSpinlock(&scoreLock);
     // Native UI skips its frame when no menu, notice or meter is visible.
     // Build our own frame only in that case, after both backends are ready.
-    return (active || risingModeActive || risingState.connected) && before == renderedFrames && ImGui::GetCurrentContext() &&
+    return (active || risingModeActive || risingState.connected || risingBracketOpen) && before == renderedFrames && ImGui::GetCurrentContext() &&
            ImGui::GetIO().BackendRendererUserData && ImGui::GetIO().BackendPlatformUserData;
 }
 
 extern "C" void Competitive_ScoreDraw(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target) {
     const unsigned before = renderedFrames;
+    risingUiEnter();
     Ui_Draw(cmd, target);
+    risingUiLeave();
     if (needs_score_frame(before)) {
         ImGui_ImplSDLGPU3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -188,7 +191,9 @@ extern "C" void Competitive_ScoreDraw(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture 
 
 extern "C" void Competitive_ScoreDrawGL(void) {
     const unsigned before = renderedFrames;
+    risingUiEnter();
     Ui_DrawGL();
+    risingUiLeave();
     if (needs_score_frame(before)) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL3_NewFrame();

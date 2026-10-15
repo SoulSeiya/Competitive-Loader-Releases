@@ -35,7 +35,7 @@ class State(C.Structure):
                 ("title", C.c_char * 97), ("address", C.c_char * 129),
                 ("notice", C.c_char * 257), ("key", C.c_char * 65),
                 ("users", User * 32), ("chat", (C.c_char * 385) * 64), ("invite", C.c_char * 385),
-                ("tournament", TournamentState)]
+                ("chat_serial", C.c_uint32), ("tournament", TournamentState)]
 
 
 class Command(C.Structure):
@@ -66,13 +66,14 @@ class RoomBridge:
         self.name = "Local\\BTC-RisingBattle-" + secrets.token_hex(16)
         self.memory = mmap.mmap(-1, C.sizeof(Shared), tagname=self.name)
         self.shared = Shared.from_buffer(self.memory)
-        self.shared.magic, self.shared.version = MAGIC, 4
+        self.shared.magic, self.shared.version = MAGIC, 5
         self.log = logger or logging.getLogger("competitive.room")
         self.client = client
         self.preserve_membership = preserve_membership
         self.runtime = None
         self.game_bots = None
         self.server = None
+        self.local_service = None
         self.bots = None
         self.snapshot = client.send("poll") if client else None
         try:
@@ -104,6 +105,7 @@ class RoomBridge:
                 state.users[i].flags = int(bool(user["ready"])) | (2 if user.get("bot") else 0) | (4 if user.get("game_bot") else 0)
                 state.users[i].name = encoded(user["name"], 65)
             state.chat_count = len(s["messages"])
+            state.chat_serial = s["messages"][-1]["id"] if s["messages"] else 0
             for i, message in enumerate(s["messages"]):
                 state.chat[i].value = encoded(message["author"] + ": " + message["text"], 385)
             t = s.get("tournament")
@@ -152,17 +154,44 @@ class RoomBridge:
 
     def _execute(self, command):
         op = command.op
+        if op == 23:
+            from rising_service import ServiceServer
+            if not self.local_service:
+                self.local_service = ServiceServer()
+            self.notice = f"Servicio BTC local activo en http://127.0.0.1:{self.local_service.port}. Solo este equipo; no esta publicado en Internet."
+            return
+        if op in (21, 22):
+            if self.client:
+                raise RoomError("Sal de la sala actual antes de cambiar")
+            from rising_service import ServiceClient
+            client = ServiceClient(decoded(command.address), decoded(command.text) if op == 22 else "")
+            if op == 21:
+                snapshot = client.send("create", name=decoded(command.name), title=decoded(command.title),
+                                       capacity=command.capacity, protocol=PROTOCOL, edition="BTC")
+            else:
+                snapshot = client.send("join", name=decoded(command.name), protocol=PROTOCOL, edition="BTC")
+            self.client, self.snapshot = client, snapshot
+            self.address = decoded(command.address)
+            self.invite = snapshot["room_code"]
+            self.notice = "Sala BTC conectada por codigo. F2: bracket. Tab: chat para toda la sala."
+            return
         if op == 19:
             if self.client:
                 raise RoomError("Sal de la sala actual para preparar la prueba")
             if not self.runtime:
                 raise RoomError("Inicia el juego desde el Loader para preparar los bots de combate")
             from rising_game_bots import GameBotProcesses
-            self.server = RoomServer("Prueba BTC: tu + 3 bots", decoded(command.name) or "UT Rising", 0, 4, bind="127.0.0.1")
-            self.client = RoomClient("127.0.0.1", self.server.port, self.server.room.host_token)
-            self.address = f"127.0.0.1:{self.server.port} (prueba local)"
-            self.key = self.server.room.key
-            self.invite = make_invite("127.0.0.1", self.server.port, self.key)
+            from rising_service import ServiceServer, ServiceClient
+            if not self.local_service:
+                self.local_service = ServiceServer(port=0)
+            self.address = f"http://127.0.0.1:{self.local_service.port}"
+            self.client = ServiceClient(self.address)
+            self.snapshot = self.client.send("create",name=decoded(command.name) or "UT Rising",
+                                            title="Prueba BTC: tu + 3 bots",capacity=4,protocol=PROTOCOL,edition="BTC")
+            self.invite = self.snapshot["room_code"]
+            # Private loopback adapter lets owned game workers use their existing transport.
+            room = self.local_service.coordinator.rooms[self.client.code]
+            self.server = RoomServer("", "", 0, bind="127.0.0.1", room=room)
             self.snapshot = self.client.send("tournament_config", title="Todos contra mi - prueba BTC", ft=1, characters=1)
             self.snapshot = self.client.send("tournament_register", roster=["Libre (prueba)"])
             self.bots = RoomBots(self.server, game_bots=True)
@@ -272,8 +301,9 @@ class RoomBridge:
                         self.log.warning("ROOM_COMMAND_FAILED op=%s reason=%s", command.op, self.notice)
                         if command.op in (1, 2, 9, 19):
                             self._leave()
-                    self.shared.ack_seq = seq
                     self._publish()
+                    # Acknowledgement guarantees the matching state is already visible.
+                    self.shared.ack_seq = seq
                 now = time.monotonic()
                 if self.client and now - last_poll >= 0.5:
                     last_poll = now
@@ -293,6 +323,9 @@ class RoomBridge:
             self._publish()
         finally:
             self._leave()
+            if self.local_service:
+                self.local_service.close()
+                self.local_service = None
 
     def close(self):
         self.stop.set()

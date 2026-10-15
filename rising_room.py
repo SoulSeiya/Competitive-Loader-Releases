@@ -159,8 +159,8 @@ class Room:
 
 
 class RoomServer:
-    def __init__(self, title, name, port=7001, capacity=8, bind="0.0.0.0"):
-        self.room = Room(title, name, capacity)
+    def __init__(self, title, name, port=7001, capacity=8, bind="0.0.0.0", room=None):
+        self.room = room if room is not None else Room(title, name, capacity)
         room = self.room
 
         class Handler(BaseHTTPRequestHandler):

@@ -5,6 +5,7 @@ extern bool nativeNetOpen __asm__("_ZL4sNet");
 extern "C" void Ui_Toggle(void);
 extern "C" void Port_LobbyCancel(void);
 extern "C" volatile int gPortNetMenuRequest;
+extern "C" int gPortChatTyping;
 extern "C" bool OriginalRoomBegin(const char *, bool *, ImGuiWindowFlags) __asm__("_ZN5ImGui5BeginEPKcPbi");
 typedef HANDLE (WINAPI *RisingOpenMapping)(DWORD, BOOL, LPCSTR);
 typedef LPVOID (WINAPI *RisingMapView)(HANDLE, DWORD, DWORD, DWORD, SIZE_T);
@@ -16,10 +17,24 @@ static volatile LONG risingModeActive;
 static volatile LONG risingLeaveRequested;
 static RisingState risingState;
 static RisingCommand risingCommand;
+static bool risingBracketOpen;
+static void risingRoomContent();
+static bool risingNetTab;
+static bool risingSelectTournament;
+static void risingUiEnter();
+static void risingUiLeave();
 extern "C" int Competitive_WindowEvent(const SDL_Event *);
 extern "C" int Competitive_RisingEvent(const SDL_Event *event) {
+    if (event && (event->type == SDL_EVENT_KEY_DOWN || event->type == SDL_EVENT_KEY_UP) && event->key.scancode == SDL_SCANCODE_F2) {
+        if (event->type == SDL_EVENT_KEY_DOWN && !event->key.repeat) risingBracketOpen = !risingBracketOpen;
+        return 1;
+    }
+    if(event && risingState.connected && nativeNetOpen && event->type==SDL_EVENT_KEY_DOWN &&
+            event->key.scancode==SDL_SCANCODE_TAB && !event->key.repeat) Ui_Toggle();
     const bool wasOnlineMenu = nativeNetOpen;
+    risingUiEnter();
     const int result = Competitive_WindowEvent(event);
+    risingUiLeave();
     if (wasOnlineMenu && !nativeNetOpen) {
         risingRoomRequested = false;
         risingModeActive = 0;
@@ -41,7 +56,7 @@ static bool risingConnectBridge() {
     RisingShared *shared = (RisingShared *)map(handle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, sizeof(RisingShared));
     close(handle);
     if (!shared) return false;
-    if (shared->magic != 0x52435442 || shared->version != 4) {
+    if (shared->magic != 0x52435442 || shared->version != 5) {
         typedef BOOL (WINAPI *Unmap)(LPCVOID);
         Unmap unmap = (Unmap)GetProcAddress(module, "UnmapViewOfFile");
         if (unmap) unmap(shared);
@@ -93,8 +108,10 @@ static bool risingSend(unsigned op, unsigned target = 0) {
 #include "competitive_game_bot.cpp"
 #include "competitive_tournament_match.cpp"
 #include "competitive_tournament.cpp"
+#include "competitive_room_social.cpp"
 
 extern "C" bool Competitive_RisingBegin(const char *name, bool *open, ImGuiWindowFlags flags) {
+    if (name && strcmp(name, "Dragon Net Battle") == 0 && risingNetTab) flags &= ~ImGuiWindowFlags_AlwaysAutoResize;
     const bool visible = OriginalRoomBegin(name, open, flags);
     if (visible && name && strcmp(name, "Settings") == 0) {
         if (ImGui::Button("Pruebas de sala BTC (desarrollo)")) {
@@ -102,6 +119,37 @@ extern "C" bool Competitive_RisingBegin(const char *name, bool *open, ImGuiWindo
             gPortNetMenuRequest = 1;
         }
         ImGui::Separator();
+    }
+    if (visible && name && strcmp(name, "Dragon Net Battle") == 0) {
+        risingRead();
+        const bool tournamentRunning = risingState.connected && risingState.tournament.status == 1;
+        if(tournamentRunning) risingSelectTournament=true;
+        bool direct = true;
+        if (ImGui::BeginTabBar("btc-online-sections")) {
+            ImGui::BeginDisabled(tournamentRunning);
+            if (ImGui::BeginTabItem("Partidas")) {
+                risingNetTab = false;
+                ImGui::EndTabItem();
+            }
+            ImGui::EndDisabled();
+            if (ImGui::BeginTabItem("Torneos BTC",NULL,risingSelectTournament ? ImGuiTabItemFlags_SetSelected : 0)) {
+                risingNetTab = true;
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+            risingSelectTournament = false;
+        }
+        direct = !risingNetTab;
+        if (!direct) {
+            if(tournamentRunning) ImGui::TextWrapped("Torneo en curso: el bracket gestiona las conexiones de combate.");
+            ImGui::SetWindowSize(ImVec2(760, 650), ImGuiCond_Always);
+            if (ImGui::BeginChild("btc-tournament-tab", ImVec2(0, 550), ImGuiChildFlags_None)) risingRoomContent();
+            ImGui::EndChild();
+            if(risingModeActive && ImGui::Button("Volver al menu principal")) { risingModeActive=0;Ui_Toggle(); }
+        }
+        // The original caller still pairs its Begin with End. Returning false skips
+        // only its direct-match body while the tournament pane occupies this window.
+        return direct;
     }
     return visible;
 }
@@ -121,16 +169,6 @@ extern "C" void Competitive_RisingMenu(void) {
         logged = true;
         fprintf(stderr, "bt3: Rising Battle: native room menu opened\n");
     }
-    risingRead();
-    static bool initialized;
-    if (!initialized) {
-        initialized = true;
-        memcpy(risingCommand.name, "Jugador", 8);
-        memcpy(risingCommand.title, "Sala BTC", 9);
-        SDL_snprintf(risingCommand.address, sizeof(risingCommand.address), "%s", risingState.address[0] ? risingState.address : "127.0.0.1");
-        risingCommand.port = 7001;
-        risingCommand.capacity = 8;
-    }
     bool open = true;
     if (risingModeActive) {
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
@@ -142,10 +180,30 @@ extern "C" void Competitive_RisingMenu(void) {
     }
     if (ImGui::Begin("Rising Battle", &open, risingModeActive ?
             ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings : ImGuiWindowFlags_NoCollapse)) {
-        ImGui::TextUnformatted("BTC - Sala de jugadores");
         if (risingModeActive && ImGui::Button("Volver al menu principal")) open = false;
-        if (ImGui::Button("Abrir Dragon Net Battle")) risingRoomRequested = false;
-        ImGui::TextWrapped("La sala sigue conectada durante el combate. Usa el chat para compartir el codigo de partida.");
+        risingRoomContent();
+    }
+    ImGui::End();
+    if (!open) {
+        risingRoomRequested = false;
+        risingModeActive = 0;
+        Ui_Toggle(); // Native close also restores input ownership; membership stays alive.
+    }
+}
+
+static void risingRoomContent() {
+    risingRead();
+    static bool initialized;
+    if (!initialized) {
+        initialized = true;
+        memcpy(risingCommand.name, "Jugador", 8);
+        memcpy(risingCommand.title, "Sala BTC", 9);
+        SDL_snprintf(risingCommand.address, sizeof(risingCommand.address), "%s", risingState.address[0] ? risingState.address : "127.0.0.1");
+        risingCommand.port = 7001;
+        risingCommand.capacity = 8;
+    }
+        ImGui::TextUnformatted("BTC - Sala de jugadores");
+        ImGui::TextWrapped("F2: bracket en directo | Tab: chat de la sala. Los cruces conectan automaticamente a sus dos jugadores.");
         ImGui::Separator();
         if (!risingShared) {
             ImGui::TextWrapped("Abre el juego desde el Loader actualizado para activar las salas.");
@@ -154,8 +212,27 @@ extern "C" void Competitive_RisingMenu(void) {
             ImGui::BeginDisabled(risingBusy());
             if (!risingState.connected) {
                 ImGui::InputText("Tu nombre", risingCommand.name, sizeof(risingCommand.name));
+                static char service[129] = "http://127.0.0.1:7010", serviceCode[16];
+                ImGui::InputText("Servicio de salas BTC",service,sizeof(service));
+                ImGui::TextWrapped("Un mismo servicio para todos los miembros. El local sirve solo para pruebas en este equipo; Internet requiere nuestro servidor HTTPS publicado.");
+                if(ImGui::Button("Iniciar servicio local de prueba")) risingSend(23);
+                ImGui::InputText("Nombre de sala BTC",risingCommand.title,sizeof(risingCommand.title));
+                int serviceCapacity=(int)risingCommand.capacity;
+                if(ImGui::SliderInt("Plazas de sala",&serviceCapacity,2,32))risingCommand.capacity=(unsigned)serviceCapacity;
+                if(ImGui::Button("Crear sala con room code")) {
+                    SDL_snprintf(risingCommand.address,sizeof(risingCommand.address),"%s",service);
+                    risingSend(21);
+                }
+                ImGui::InputText("Room code BTC",serviceCode,sizeof(serviceCode),ImGuiInputTextFlags_CharsUppercase);
+                if(ImGui::Button("Unirse con room code")) {
+                    SDL_snprintf(risingCommand.address,sizeof(risingCommand.address),"%s",service);
+                    SDL_snprintf(risingCommand.text,sizeof(risingCommand.text),"%s",serviceCode);
+                    risingSend(22);
+                }
+                ImGui::SeparatorText("Laboratorio");
                 if (ImGui::Button("Crear prueba: tu + 3 bots, todos contra mi")) risingSend(19);
                 ImGui::TextWrapped("Prueba local FT1. Cada bot abre su propio juego cuando le toca. Revisa primero las opciones de control.");
+                if(ImGui::CollapsingHeader("Conexion directa avanzada (IP / VPN)")) {
                 int port = (int)risingCommand.port;
                 if (ImGui::InputInt("Puerto de sala", &port)) risingCommand.port = port > 0 && port <= 65535 ? (unsigned)port : 7001;
                 if (ImGui::BeginTabBar("rising-room-tabs")) {
@@ -180,6 +257,7 @@ extern "C" void Competitive_RisingMenu(void) {
                     }
                     ImGui::EndTabBar();
                 }
+                }
             } else {
                 ImGui::Text("%s  |  %u / %u usuarios", risingState.title, risingState.count, risingState.capacity);
                 ImGui::TextUnformatted(risingState.address);
@@ -187,6 +265,7 @@ extern "C" void Competitive_RisingMenu(void) {
                 if (host) {
                     ImGui::TextWrapped("Codigo: %s", risingState.invite);
                     if (ImGui::Button("Copiar codigo de sala")) SDL_SetClipboardText(risingState.invite);
+                    if(risingState.key[0]) {
                     ImGui::Text("Clave: %s", risingState.key);
                     ImGui::SameLine();
                     if (ImGui::Button("Copiar clave")) SDL_SetClipboardText(risingState.key);
@@ -196,6 +275,7 @@ extern "C" void Competitive_RisingMenu(void) {
                     ImGui::SameLine();
                     if (ImGui::Button("Retirar bots")) risingSend(8);
                     ImGui::TextWrapped("Los bots prueban usuarios, chat, listo y expulsiones; no juegan combates.");
+                    }
                 }
                 if (ImGui::Button("Cambiar listo / esperando")) risingSend(6);
                 ImGui::SameLine();
@@ -216,28 +296,8 @@ extern "C" void Competitive_RisingMenu(void) {
                     }
                     ImGui::EndTable();
                 }
-                ImGui::SeparatorText("Chat de la sala");
-                static char message[385];
-                bool send = ImGui::InputText("Mensaje", message, sizeof(message), ImGuiInputTextFlags_EnterReturnsTrue);
-                ImGui::SameLine(); send = ImGui::Button("Enviar") || send;
-                if (send && message[0]) {
-                    memcpy(risingCommand.text, message, sizeof(message));
-                    if (risingSend(3)) message[0] = 0;
-                }
-                if (ImGui::BeginChild("rising-chat", ImVec2(0, 0), ImGuiChildFlags_Borders)) {
-                    const bool bottom = ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 4;
-                    for (unsigned i = 0; i < risingState.chat_count; ++i) ImGui::TextWrapped("%s", risingState.chat[i]);
-                    if (bottom) ImGui::SetScrollHereY(1);
-                }
-                ImGui::EndChild();
+                ImGui::TextWrapped("Tab abre el chat del juego para todos los miembros de esta sala, tambien durante los combates.");
             }
             ImGui::EndDisabled();
         }
-    }
-    ImGui::End();
-    if (!open) {
-        risingRoomRequested = false;
-        risingModeActive = 0;
-        Ui_Toggle(); // Native close also restores input ownership; membership stays alive.
-    }
 }

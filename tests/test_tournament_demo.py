@@ -36,6 +36,8 @@ class DemoTests(unittest.TestCase):
                 command(19,name=b"UT Rising")
                 state=type(bridge.shared.state).from_buffer_copy(bytes(bridge.shared.state))
                 self.assertEqual(state.count,4)
+                self.assertTrue(bridge.invite.startswith("BTC-"))
+                self.assertEqual(len(bridge.invite),10)
                 self.assertEqual(sum(bool(u.flags&4) for u in state.users[:4]),3)
                 self.assertEqual(state.tournament.enrolled,4)
                 self.assertEqual(state.tournament.ft,1)

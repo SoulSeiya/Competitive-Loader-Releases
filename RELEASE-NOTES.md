@@ -1,3 +1,10 @@
+# Competitive Loader 1.5.1 — candidato local
+
+- Torneos BTC dentro de Dragon Net Battle, conservando las partidas directas.
+- F2: bracket de la sala durante el juego. Tab: chat nativo compartido por sus miembros.
+- Servicio propio de códigos BTC de seis caracteres, hasta 32 usuarios por sala, torneo y chat. Probado localmente; despliegue HTTPS público pendiente.
+- La prueba de cuatro con tres bots conserva los tres sets contra el humano aunque pierda.
+
 # Competitive Loader 1.5.0 — torneo local en validación
 
 - Tenkaichi Budokai Online abre Rising Battle: sala y torneo BTC. Dragon Net Battle conserva su menú y sus códigos originales.

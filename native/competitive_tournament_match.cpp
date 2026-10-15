@@ -46,8 +46,9 @@ static void risingTournamentPump(unsigned wins1, unsigned wins2, unsigned winner
             InterlockedExchange(&risingLeaveRequested, 1); // Game tick owns session return, never the renderer.
         return;
     }
-    if (risingModeActive && !nativeNetOpen) {
-        risingRoomRequested = true;
+    if (risingModeActive && !nativeNetOpen && !gPortChatTyping) {
+        risingRoomRequested = false;
+        risingSelectTournament = true;
         gPortNetMenuRequest = 1;
     }
     if (!risingState.connected || t.status != 1 || !t.current || !t.role || t.current > t.count) {
