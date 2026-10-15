@@ -29,7 +29,7 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 5)
+APP_VERSION = (1, 5, 6)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
@@ -87,6 +87,11 @@ LATEST_WINDOWS_RELEASE = (
     "Tenkaichi3Decomp-windows-x64.zip"
 )
 LATEST_RELEASE_API = "https://api.github.com/repos/z3xox/Tenkaichi3Decomp/releases/latest"
+SUPPORTED_DECOMP_TAG = "v0.1.35.2"
+SUPPORTED_WINDOWS_RELEASE = (
+    f"https://github.com/z3xox/Tenkaichi3Decomp/releases/download/{SUPPORTED_DECOMP_TAG}/"
+    "Tenkaichi3Decomp-windows-x64.zip"
+)
 WINDOWS_ASSET_NAME = "Tenkaichi3Decomp-windows-x64.zip"
 LOADER_RELEASE_API = (
     "https://api.github.com/repos/SoulSeiya/"
@@ -1024,8 +1029,22 @@ def _install_release_transactional(source: Path, runtime: Path):
 
 def latest_release_info() -> dict:
     """Return the latest Windows release metadata without downloading the archive."""
+    return _release_info(LATEST_RELEASE_API)
+
+
+def installation_release_info() -> dict:
+    """Native hooks require the reviewed build, including on fresh installs."""
+    if not RELEASE_PROFILE:
+        return latest_release_info()
+    print(f"[AUTO] Se usará el decomp compatible con este Loader: {SUPPORTED_DECOMP_TAG}.")
+    return _release_info(
+        f"https://api.github.com/repos/z3xox/Tenkaichi3Decomp/releases/tags/{SUPPORTED_DECOMP_TAG}"
+    )
+
+
+def _release_info(api_url: str) -> dict:
     request = urllib.request.Request(
-        LATEST_RELEASE_API,
+        api_url,
         headers=_github_headers(),
     )
     try:
@@ -1053,7 +1072,7 @@ def _download_latest_release(temp: Path, release_info: dict | None = None) -> tu
     """Download and validate the latest published Windows release into temp."""
     print("[1/4] Conectando con las publicaciones oficiales de GitHub...")
     info = release_info or {}
-    download_url = info.get("download_url", LATEST_WINDOWS_RELEASE)
+    download_url = info.get("download_url", SUPPORTED_WINDOWS_RELEASE if RELEASE_PROFILE else LATEST_WINDOWS_RELEASE)
     archive_path = temp / "Tenkaichi3Decomp-windows-x64.zip"
     request = urllib.request.Request(
         download_url,
@@ -1097,10 +1116,10 @@ def update_from_github(runtime: Path, release_info: dict | None = None) -> dict:
 
     if release_info is None:
         try:
-            release_info = latest_release_info()
+            release_info = installation_release_info()
         except LoaderError as exc:
             print(f"[AVISO] {exc}")
-            print("[AUTO] Se comprobará mediante el enlace directo de la última publicación.")
+            print("[AUTO] Se usará el enlace directo de la versión compatible.")
             release_info = {}
 
     with tempfile.TemporaryDirectory(prefix="competitive-github-update-") as temp_text:
@@ -1155,8 +1174,8 @@ def ensure_latest_release(runtime: Path) -> dict:
     if not current_exe.is_file():
         raise LoaderError("CompetitiveRuntime aún no está preparado. Usa primero el botón Jugar.")
 
-    print("[AUTO] Comprobando la versión oficial más reciente...")
-    info = latest_release_info()
+    print("[AUTO] Comprobando la versión oficial compatible...")
+    info = installation_release_info()
     config = load_config()
     same_asset = bool(info.get("asset_id")) and config.get("release_asset_id") == info["asset_id"]
     expected_hash = config.get("exe_sha256", "")
@@ -2051,10 +2070,10 @@ def prepare_from_github(iso: Path, runtime: Path) -> Path:
 
     with tempfile.TemporaryDirectory(prefix="competitive-github-setup-") as temp_text:
         try:
-            release_info = latest_release_info()
+            release_info = installation_release_info()
         except LoaderError as exc:
             print(f"[AVISO] {exc}")
-            print("[AUTO] Se usará el enlace directo de la publicación más reciente.")
+            print("[AUTO] Se usará el enlace directo de la versión compatible.")
             release_info = {}
         release_root, release_hash, release_info = _download_latest_release(Path(temp_text), release_info)
         exe = prepare(release_root, iso, runtime)
