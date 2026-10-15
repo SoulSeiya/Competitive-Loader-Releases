@@ -159,3 +159,15 @@ La fixture nativa con ImGui/SDL pasa después de recompilar el payload. El EXE c
 Se preparó un ZIP para invitados con lista explícita de archivos públicos: EXE, guías y licencias. Se verificaron su integridad y el hash del EXE; no contiene configuraciones, logs, ISO ni memory. La carpeta exclusiva del host contiene el mismo EXE y cloudflared 2026.10.1 del repositorio oficial, con licencia Apache 2.0. Hash SHA256 del helper: 4d2490e74082c5d48dbfedaf92576fa5bd1702379ab88eb7faa0cfbe8dc891b6.
 
 La revisión automática bloqueó el comando de arranque del servicio y Quick Tunnel, sin aportar motivo concreto. No se repitió por otro mecanismo. El túnel no está iniciado: el usuario debe abrir Iniciar servidor de prueba.cmd y pulsar Iniciar. La prueba manual con el amigo por Internet, la operatividad real de ese túnel y la revisión visual siguen pendientes. No se publicó una Release.
+
+## Replay local P1/P2 y separación del laboratorio 1.5.4
+
+Pasan 62 pruebas. La prueba nativa de cámara comprueba las vistas 0/1 y layout dividido únicamente con replay activo offline, con paso íntegro a la cámara original fuera de ese contexto, online y durante cinemáticas. Verifica además la configuración CPU/CPU limitada al proceso de grabación y el modo HUD. La preparación del archivo conserva las pistas byte a byte y solo cambia screenMode; rechaza tamaño/formato/pistas inválidos. Se corrigió durante el ensayo el padding final de 0x20 que exige el cargador nativo.
+
+Se grabó un clip real CPU/CPU y se reprodujo mediante BT3_REPLAY con ambas cámaras. La captura GPU confirmó dos perspectivas distintas en una sola imagen. En ocho muestras comunes de vida, posición y reloj, el replay coincidió con la grabación; es una observación finita, no una prueba exhaustiva de determinismo. Evidencia local privada: logs/replay-spectator/0e2c11ebab4e4ffa855bf7c0704da498 y bf6a7c3dae9c4985b9faf48902c7bc65. Los ensayos visuales finitos posteriores se cerraron solo en sus procesos propios. Un replay Versus agotado permanece en el estado final hasta cerrar su ventana.
+
+La fixture nativa de sala ImGui/SDL pasa. El menú normal oculta crear bots, simulación, servicio local y vistas de otras ventanas de prueba. El inicio normal limpia las variables de laboratorio heredadas; los ensayos las pasan explícitamente. La prueba local se entrega en una carpeta distinta, con un acceso que abre el replay mediante --watch-replay. No se incluye ese acceso ni el clip en el ZIP normal.
+
+La recepción de entradas online, incorporación tardía de espectadores y asociación del visor con el bracket siguen pendientes. No se ha publicado una Release ni se presenta esta reproducción local como espectador online ya implementado.
+
+El EXE final 1.5.4 pasó --smoke-test, --smoke-room, --smoke-service y --smoke-runtime con salida cero. Se ejecutó también su ruta --watch-replay y se confirmó la entrada en la cámara dividida desde el log del juego. Ese ensayo empaquetado se detuvo cerrando únicamente el job propio del visor.

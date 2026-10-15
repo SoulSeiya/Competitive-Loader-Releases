@@ -44,7 +44,7 @@ static void risingTournamentPanel(bool host) {
             ImGui::Text("Cruce actual: #%u | Tu puesto: %s", t.current,
                 t.role == 1 ? "Jugador 1" : t.role == 2 ? "Jugador 2" : "Esperando en la sala");
             if (!t.role) ImGui::TextUnformatted("La visualizacion como espectador todavia no esta implementada.");
-            if (host && !t.role) {
+            if (SDL_getenv("BTC_DEV_TOOLS") && host && !t.role) {
                 if (ImGui::Button("Ver combate local de bots (otra ventana)")) risingSend(20);
                 ImGui::TextWrapped("Vista local de prueba: observa una instancia de bot de este equipo. No es una conexion de espectador online.");
             }
@@ -68,7 +68,7 @@ static void risingTournamentPanel(bool host) {
             }
             ImGui::EndTable();
         }
-        if (host && t.status == 1 && ImGui::Button("Simular siguiente cruce (solo bots)")) risingSend(13);
+        if (SDL_getenv("BTC_DEV_TOOLS") && host && t.status == 1 && ImGui::Button("Simular siguiente cruce (solo bots)")) risingSend(13);
         if (t.role && t.status == 1) {
             ImGui::TextWrapped("Los resultados del combate automatico se envian al completar el FT. Tambien puedes confirmar el marcador manualmente; debe coincidir con el del rival.");
             ImGui::SliderInt("Victorias P1", &score1, 0, (int)t.ft);

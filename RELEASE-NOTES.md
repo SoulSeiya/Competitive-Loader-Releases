@@ -1,3 +1,9 @@
+Competitive Loader 1.5.4 — candidato en validación.
+
+- Menú normal de torneo sin botones de laboratorio, bots de prueba ni simuladores.
+- Prueba separada de replay CPU/CPU con cámaras locales P1 y P2 en una sola ventana.
+- La reproducción local no es todavía un espectador online en directo.
+
 Competitive Loader 1.5.3 — candidato de prueba con amigos.
 Sala por HTTPS, chat compartido y bots de sala administrados por el anfitrión.
 El iniciador del anfitrión permite levantar un túnel temporal; aún requiere prueba entre dos equipos.

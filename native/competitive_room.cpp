@@ -223,7 +223,7 @@ static void risingRoomContent() {
                 }
                 ImGui::InputText("Servicio de salas BTC",service,sizeof(service));
                 ImGui::TextWrapped("Un mismo servicio para todos los miembros. El local sirve solo para pruebas en este equipo; Internet requiere nuestro servidor HTTPS publicado.");
-                if(ImGui::Button("Iniciar servicio local de prueba")) risingSend(23);
+                if(SDL_getenv("BTC_DEV_TOOLS") && ImGui::Button("Iniciar servicio local de prueba")) risingSend(23);
                 ImGui::InputText("Nombre de sala BTC",risingCommand.title,sizeof(risingCommand.title));
                 int serviceCapacity=(int)risingCommand.capacity;
                 if(ImGui::SliderInt("Plazas de sala",&serviceCapacity,2,32))risingCommand.capacity=(unsigned)serviceCapacity;
@@ -237,9 +237,11 @@ static void risingRoomContent() {
                     SDL_snprintf(risingCommand.text,sizeof(risingCommand.text),"%s",serviceCode);
                     risingSend(22);
                 }
+                if(SDL_getenv("BTC_DEV_TOOLS")) {
                 ImGui::SeparatorText("Laboratorio");
                 if (ImGui::Button("Crear prueba: tu + 3 bots, todos contra mi")) risingSend(19);
                 ImGui::TextWrapped("Prueba local FT1. Cada bot abre su propio juego cuando le toca. Revisa primero las opciones de control.");
+                }
                 if(ImGui::CollapsingHeader("Conexion directa avanzada (IP / VPN)")) {
                 int port = (int)risingCommand.port;
                 if (ImGui::InputInt("Puerto de sala", &port)) risingCommand.port = port > 0 && port <= 65535 ? (unsigned)port : 7001;
@@ -278,12 +280,14 @@ static void risingRoomContent() {
                     ImGui::SameLine();
                     if (ImGui::Button("Copiar clave")) SDL_SetClipboardText(risingState.key);
                     }
+                    if(SDL_getenv("BTC_DEV_TOOLS")) {
                     if (ImGui::Button("Anadir 1 bot de prueba")) risingSend(7, 1);
                     ImGui::SameLine();
                     if (ImGui::Button("Llenar con bots")) risingSend(7, risingState.capacity > risingState.count ? risingState.capacity - risingState.count : 0);
                     ImGui::SameLine();
                     if (ImGui::Button("Retirar bots")) risingSend(8);
                     ImGui::TextWrapped("Los bots prueban usuarios, chat, listo y expulsiones; no juegan combates.");
+                    }
                 }
                 if (ImGui::Button("Cambiar listo / esperando")) risingSend(6);
                 ImGui::SameLine();

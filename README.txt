@@ -1,27 +1,13 @@
-Competitive Loader 1.5.3 — candidato de prueba con amigos.
-Sala por HTTPS, chat compartido y bots de sala administrados por el anfitrión.
-El iniciador del anfitrión permite levantar un túnel temporal; aún requiere prueba entre dos equipos.
-Los bots de sala no pelean ni habilitan espectadores remotos.
+Competitive Loader 1.5.4 — candidato en validación.
 
-Competitive Loader 1.5.2: matchmaking propio activo en Cloudflare.
-Worker predeterminado: https://btc-matchmaking.paulogomez41.workers.dev
-Sala publica del torneo y relay TURN pendientes.
+Dragon Net Battle conserva Partidas y Torneos BTC. F2 muestra el bracket y Tab
+abre el chat de sala. El menú normal no incluye bots de prueba, simuladores ni
+accesos al laboratorio. La prueba de espectador se distribuye por separado.
 
-
-F1 > Online > Dragon Net Battle > Torneos BTC. F2: bracket. Tab: chat de sala.
-Códigos BTC de seis caracteres: servicio propio probado localmente, aún sin alojamiento público.
-
-# Competitive Loader 1.5.1 — torneo local en validación
-
-- Tenkaichi Budokai Online abre Rising Battle: sala y torneo BTC. Dragon Net Battle conserva su menú y sus códigos originales.
-- Temática, FT1–FT5 y máximo declarado de 1–5 personajes por inscrito. Inscripción individual y cierre al iniciar el torneo.
-- Bracket de eliminación directa para 2–32 inscritos, con sorteo, pases libres y anuncios de cruces y resultados en el chat.
-- Cada cruce conecta automáticamente a sus dos jugadores usando el matchmaking nativo. El resultado del FT requiere confirmación coincidente de ambos clientes; los envíos repetidos no duplican avances. El anfitrión puede resolver bajas por WO.
-- Prueba Todos contra mí: tú y tres bots con sus propias instancias e inputs programados. Tres sets consecutivos, FT configurable y sin eliminación. Se crea desde el menú. No son bots de inteligencia artificial avanzada.
-- Durante la espera se puede abrir la ventana de un bot para ver el combate local. No es el espectador online por replay, que continúa pendiente.
-- Los bots mantienen sus propias copias de saves y solo se cierran procesos auxiliares creados por la prueba. Los logs de cada bot se conservan en logs/tournament-lab.
-- La lista de personajes es declarativa; todavía no bloquea elecciones fuera de esa lista en la selección del combate.
-- El servicio público de códigos cortos para salas BTC sigue pendiente de desarrollo y despliegue. Las salas de esta prueba se alojan localmente; los códigos nativos de cada combate se mantienen.
+Matchmaking de peleas: https://btc-matchmaking.paulogomez41.workers.dev
+El alojamiento permanente de salas de torneo y el espectador online en directo
+siguen pendientes. Ambos jugadores necesitan los mismos datos y memory compatibles.
+Guía de uso: RISING-BATTLE.md. Registros: carpeta logs junto al Loader.
 
 ## Funciones conservadas
 

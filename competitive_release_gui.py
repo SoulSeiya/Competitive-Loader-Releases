@@ -208,7 +208,12 @@ def main():
 
 
 if __name__ == "__main__":
-    if "--room-test-host" in sys.argv or "--smoke-room-test-host" in sys.argv:
+    if "--watch-replay" in sys.argv:
+        from replay_spectator import watch
+        replay=Path(sys.argv[sys.argv.index("--watch-replay")+1]).resolve()
+        result=watch(Path(core.load_config().get("runtime",core.DEFAULT_RUNTIME)),replay)
+        if result:raise SystemExit(result)
+    elif "--room-test-host" in sys.argv or "--smoke-room-test-host" in sys.argv:
         from temporary_room_host import main as host_main
         host_main()
     elif "--tournament-bot-worker" in sys.argv:

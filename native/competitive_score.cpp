@@ -26,6 +26,7 @@ extern "C" int ScoreLog(FILE *, const char *, ...) __asm__("fprintf");
 #include "competitive_window.cpp"
 #include "competitive_ft.cpp"
 #include "competitive_room.cpp"
+#include "competitive_replay_view.cpp"
 
 static ScoreTracker tracker;
 static int scoreLock;

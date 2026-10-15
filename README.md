@@ -80,3 +80,10 @@ menú del juego. `--room-test-host` abre un iniciador explícito de servicio loc
 Quick Tunnel (requiere cloudflared.exe junto al Loader); solo detiene sus dos
 procesos propios. La dirección y las salas son temporales. No se ha validado aún
 una sesión manual entre dos equipos. Véase RISING-BATTLE.md.
+
+### Separación del laboratorio y replay 1.5.4
+
+El menú normal de Torneos BTC deja de mostrar los controles de laboratorio,
+bots y simulación. La prueba de espectador queda en LAB-ESPECTADOR.md: replay
+CPU/CPU con dos cámaras nativas, como P1/P2 local, dentro de una sola ventana.
+Es reproducción local; el transporte de espectador online sigue pendiente.

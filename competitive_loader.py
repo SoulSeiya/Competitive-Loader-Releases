@@ -29,11 +29,11 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 3)
+APP_VERSION = (1, 5, 4)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
-    "• Prueba compartida de salas por HTTPS: usuarios reales, chat y bots de sala administrados por el host.\n"
+    "• Menú de torneos sin botones de laboratorio; las pruebas se abren por separado.\n"
     "• Matchmaking BTC propio por defecto en Cloudflare; la app ya no recurre al servidor oficial del decomp.\n"
     "• Puedes cambiar el Worker desde el Loader. La sala de torneo pública y el relay siguen pendientes.\n"
     "• Pestaña Torneos BTC dentro de Dragon Net Battle.\n"
@@ -185,6 +185,8 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
         CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
     if session_score:
         CALL_WRAPPERS["competitive_score.o"] = {
+            "BtlCam_UpdateOverride": "Competitive_ReplayCameraOverride",
+            "Demo_SetupBattle": "Competitive_ReplayCpuSetup",
             "MainMenu_Run": "Competitive_RisingMainMenu",
             "Port_PadRead": "Competitive_BotPadRead",
             "PortTbo_Run": "Competitive_TournamentMode",
@@ -1582,6 +1584,10 @@ def launch_patched(
     game_output_fd: int | None = None,
 ):
     launch_env = dict(env or {})
+    # Public starts never inherit laboratory menus from the desktop environment.
+    launch_env.setdefault("BTC_DEV_TOOLS", None)
+    launch_env.setdefault("BTC_REPLAY_RECORD_CPU", None)
+    launch_env.setdefault("BTC_REPLAY_SPLIT", None)
     if RELEASE_PROFILE:
         from btc_matchmaking import environment
         try:
