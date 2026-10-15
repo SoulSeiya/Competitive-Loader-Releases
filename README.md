@@ -3,6 +3,10 @@ Código y publicaciones de Competitive Loader.
 
 El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
 
+## Rising Battle 1.4.0 — candidato de prueba
+
+Sala BTC dentro del juego con lista de usuarios, chat, estado listo y expulsiones del anfitrión. Hasta 32 usuarios por IP/puerto y clave, alojada en el equipo anfitrión. Abre F1 → Rising Battle - Sala BTC. La conexión de combate sigue en Partida BTC; espectadores y torneos quedan pendientes. [Uso e implementación](RISING-BATTLE.md).
+
 ## Release 1.3.2
 
 En F1 → Online → Host se puede elegir Sin FT o FT1–FT5 antes de conectar. El anfitrión transmite el objetivo a ambos jugadores con las reglas de la sesión privada. Gana quien alcanza esas victorias confirmadas; los empates no avanzan el FT. Al finalizar, el marcador se detiene, aparece GG con el ganador y se cierra el online de ambos. Ambos necesitan este Loader. La búsqueda rápida mantiene sus reglas.

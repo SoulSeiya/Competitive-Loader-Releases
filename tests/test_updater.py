@@ -35,8 +35,9 @@ class UpdaterTests(unittest.TestCase):
         self.assertIsNone(loader._release_version("release-next"))
 
     def test_new_release_is_selected(self):
+        future_tag = f"v{loader.APP_VERSION[0]}.{loader.APP_VERSION[1] + 1}.0"
         release = {
-            "tag_name": "v1.4.0",
+            "tag_name": future_tag,
             "name": "Competitive Loader 1.4",
             "body": "Cambios de prueba",
             "assets": [{
@@ -49,7 +50,7 @@ class UpdaterTests(unittest.TestCase):
         response = FakeResponse(json.dumps(release).encode("utf-8"))
         with mock.patch("urllib.request.urlopen", return_value=response):
             update = loader.latest_loader_update()
-        self.assertEqual(update["tag"], "v1.4.0")
+        self.assertEqual(update["tag"], future_tag)
         self.assertEqual(update["size"], 123)
 
     def test_current_release_is_ignored(self):

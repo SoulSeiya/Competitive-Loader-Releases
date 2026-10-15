@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox
 import competitive_loader as core
 from competitive_gui import CompetitiveApp
 from session_diagnostics import SessionDiagnostics, make_logger
+from rising_room_bridge import RoomBridge
 
 core.RELEASE_PROFILE = True
 LOGS = core.HERE / "logs"
@@ -18,6 +19,7 @@ LOGS = core.HERE / "logs"
 class ReleaseApp(CompetitiveApp):
     def __init__(self, root):
         self.session = None
+        self.room_bridge = RoomBridge(make_logger("competitive.room", LOGS / "rising-battle.log"))
         super().__init__(root)
         root.title(f"Competitive Loader {core.APP_VERSION_TEXT}")
         def refresh(widget):
@@ -103,7 +105,7 @@ class ReleaseApp(CompetitiveApp):
                     print("[AVISO] No se pudo instalar una actualización compatible; se comprobará la copia instalada.")
                 image = core.validate_payload(core.PAYLOAD, exe)
                 image.build(0x60000000, image.pe.preferred_base)
-                return self.session.launch(exe, image)
+                return self.session.launch(exe, image, env={"BTC_ROOM_BRIDGE": self.room_bridge.name})
             self._run("Comprobando actualizaciones e iniciando Competitive",
                       "Competitive iniciado. Mantén el Loader abierto mientras juegas.", launch)
             return
@@ -122,7 +124,7 @@ class ReleaseApp(CompetitiveApp):
                 core.import_ps2_card(Path(card), runtime)
             image = core.validate_payload(core.PAYLOAD, prepared)
             image.build(0x60000000, image.pe.preferred_base)
-            return self.session.launch(prepared, image)
+            return self.session.launch(prepared, image, env={"BTC_ROOM_BRIDGE": self.room_bridge.name})
         self._run("Preparando la instalación competitiva", "Instalación lista y Competitive iniciado.", install)
 
     def close_app(self):
@@ -134,6 +136,7 @@ class ReleaseApp(CompetitiveApp):
             self.session.finish("loader_closed_while_game_running")
         elif self.session:
             self.session.dispose()
+        self.room_bridge.close()
         self.root.destroy()
 
 
@@ -150,17 +153,21 @@ def main():
         pass
     root = tk.Tk()
     root.report_callback_exception = report_exception
-    ReleaseApp(root)
+    app = ReleaseApp(root)
     if "--smoke-test" in sys.argv:
         root.withdraw()
         root.update()
+        app.room_bridge.close()
         root.destroy()
     else:
         root.mainloop()
 
 
 if __name__ == "__main__":
-    if "--apply-loader-update" in sys.argv:
+    if "--smoke-room" in sys.argv:
+        from rising_room import smoke_test
+        smoke_test()
+    elif "--apply-loader-update" in sys.argv:
         i = sys.argv.index("--apply-loader-update")
         core.apply_loader_update(int(sys.argv[i + 1]), Path(sys.argv[i + 2]), Path(sys.argv[i + 3]))
     elif "--finish-loader-update" in sys.argv:

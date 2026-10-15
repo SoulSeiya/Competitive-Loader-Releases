@@ -29,10 +29,14 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 3, 2)
+APP_VERSION = (1, 4, 0)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Rising Battle: sala BTC dentro del menú online del juego.\n"
+    "• Crear o unirse por IP, puerto y clave; hasta 32 usuarios.\n"
+    "• Lista de usuarios, estado listo, chat y expulsión por el anfitrión.\n"
+    "• La sala permanece conectada durante los combates BTC.\n"
     "• Corrección de carga de modelos de efectos, incluido el fallo detectado al atacar con Androide 16.\n"
     "• FT1 a FT5 en la pestaña Host del menú online F1.\n"
     "• Ganador en grande y GG al completar el FT; cierre de la sesión para ambos.\n"
@@ -169,6 +173,8 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
         CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
     if session_score:
         CALL_WRAPPERS["competitive_score.o"] = {
+            "_ZL9build_netv": "Competitive_RisingMenu",
+            "_ZN5ImGui5BeginEPKcPbi": "Competitive_RisingBegin",
             "Ui_Event": "Competitive_WindowEvent",
             "Port_NetRulesSet": "Competitive_FtRulesSet",
             "Port_LobbyStartQuick": "Competitive_FtQuickStart",

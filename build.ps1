@@ -25,6 +25,7 @@ New-Item -ItemType Directory -Path $Package -Force | Out-Null
 try {
     Copy-Item -LiteralPath (Join-Path $Dist "Competitive Loader.exe") -Destination $Package
     Copy-Item -LiteralPath (Join-Path $Project "README.txt") -Destination $Package
+    Copy-Item -LiteralPath (Join-Path $Project "RISING-BATTLE.md") -Destination $Package
     Copy-Item -LiteralPath (Join-Path $Project "licenses") -Destination (Join-Path $Package "licenses") -Recurse
     Compress-Archive -Path (Join-Path $Package "*") -DestinationPath $Archive -CompressionLevel Optimal
 }

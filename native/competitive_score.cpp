@@ -25,6 +25,7 @@ int SDL_snprintf(char *, size_t, const char *, ...);
 extern "C" int ScoreLog(FILE *, const char *, ...) __asm__("fprintf");
 #include "competitive_window.cpp"
 #include "competitive_ft.cpp"
+#include "competitive_room.cpp"
 
 static ScoreTracker tracker;
 static int scoreLock;
