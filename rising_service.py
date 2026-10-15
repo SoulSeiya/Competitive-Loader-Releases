@@ -34,13 +34,19 @@ class Coordinator:
         self.lock = threading.RLock()
         self.rooms = {}
         self.limits = {}
+        self.bots = {}
 
     def _cleanup(self):
         for code, room in list(self.rooms.items()):
             with room.lock:
+                tokens = self.bots.get(code, set())
+                tokens.intersection_update(room.users)
+                for token in tokens:
+                    room.users[token]["seen"] = self.clock()
                 room._expire()
                 if room.closed:
                     del self.rooms[code]
+                    self.bots.pop(code, None)
         now = self.clock()
         for ip, events in list(self.limits.items()):
             while events and now-events[0] >= 3600:
@@ -83,7 +89,37 @@ class Coordinator:
                 if op == "join":
                     # Knowing a code invites a person, never authorizes a bot or host action.
                     values.update(key=room.key, bot=False, game_bot=False)
-        result = room.handle(values)
+            if op in ("bots_add", "bots_remove"):
+                with room.lock:
+                    token = data.get("token")
+                    if not isinstance(token, str) or token != room.host_token or token not in room.users:
+                        raise RoomError("Solo el anfitrión puede gestionar los bots")
+                    room.handle(dict(op="poll", token=token))
+                    tokens = self.bots.setdefault(code, set())
+                    if op == "bots_add":
+                        count = data.get("count")
+                        if type(count) is not int or not 1 <= count <= 31:
+                            raise RoomError("Elige entre 1 y 31 bots")
+                        for _ in range(min(count, room.capacity-len(room.users))):
+                            number = room.next_id+1
+                            name = f"Bot BTC {number:02}"
+                            while any(u["name"].casefold() == name.casefold() for u in room.users.values()):
+                                number += 1
+                                name = f"Bot BTC {number:02}"
+                            bot = room.handle(dict(op="join", token=token, key=room.key,
+                                name=name, bot=True, protocol=PROTOCOL, edition="BTC"))["token"]
+                            tokens.add(bot)
+                            room.handle(dict(op="ready", token=bot))
+                            room.handle(dict(op="chat", token=bot, text="Bot de sala conectado para probar usuarios, chat y expulsiones."))
+                            if room.tournament.status == "registration":
+                                room.handle(dict(op="tournament_register", token=bot, roster=["Personaje de prueba"]))
+                    else:
+                        for bot in list(tokens):
+                            if bot in room.users:
+                                room.handle(dict(op="leave", token=bot))
+                        tokens.clear()
+                    values = dict(op="poll", token=token)
+            result = room.handle(values)
         result["room_code"] = "BTC-"+code
         return result
 

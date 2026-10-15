@@ -1,0 +1,49 @@
+BTC 1.5.3 — PRUEBA DE SALA Y CHAT CON AMIGOS
+
+ANFITRION
+1. En la carpeta BTC-Anfitrion-Prueba-1.5.3 abre Iniciar servidor de prueba.cmd.
+2. Pulsa Iniciar servidor de prueba y espera a que aparezca Servicio activo.
+3. Copia la direccion HTTPS y enviasela a tu amigo. Mantén esa ventana abierta.
+4. Abre Competitive Loader.exe de esa misma carpeta e inicia tu juego.
+5. Abre Dragon Net Battle (F1 / online) y la pestana Torneos BTC.
+6. Escribe tu nombre, elige 4 plazas y pulsa Crear sala con room code.
+7. Comparte el codigo BTC-XXXXXX. Puedes anadir dos bots con Anadir 1 bot de prueba.
+
+AMIGO
+1. Extrae BTC-Prueba-Amigos-1.5.3.zip completo antes de ejecutar el programa.
+2. Si ya tienes una instalacion del Loader, puedes copiar solo el EXE nuevo junto
+   a tu EXE anterior para conservar tus rutas. Cierra el Loader anterior primero.
+3. Si no tienes instalacion, abre el Loader y prepara tu ISO y memory propias.
+   Ambos necesitais la misma edicion del juego y memory online compatible.
+4. Antes de iniciar el juego pulsa Configurar servicio de salas BTC en el Loader
+   y pega la direccion HTTPS que te da el anfitrion. Guarda y luego inicia el juego.
+5. Dragon Net Battle -> Torneos BTC: escribe un nombre distinto, pega BTC-XXXXXX
+   en Room code BTC y pulsa Unirse con room code.
+
+COMPROBACION
+- Los dos veis los mismos cuatro usuarios: vosotros y dos bots de sala.
+- Tab abre el chat: enviad un mensaje cada uno y comprobadlo en el otro equipo.
+- Cambiad listo/esperando y comprobad que se actualiza en el otro equipo.
+- El host expulsa un bot: desaparece para ambos y no vuelve a entrar solo.
+- Retirar bots deja unicamente los jugadores reales.
+- El amigo sale y vuelve a entrar con el mismo codigo mientras el host siga dentro.
+- F2 muestra el bracket; antes de iniciar un torneo todavia no hay cruces.
+
+Esta prueba cubre sala, chat y administracion. Los bots de sala no pelean; para
+esta prueba no hace falta iniciar un torneo. El laboratorio local de bots de
+combate es una prueba independiente. No hay espectador online por replay.
+
+AL TERMINAR
+Cerrar sala cierra la sala para todos. Detener servidor o cerrar su ventana
+detiene solo los dos procesos creados por el iniciador y elimina todas las salas.
+Un nuevo inicio genera otra direccion HTTPS: compartidla y guardadla de nuevo,
+con el juego cerrado. La conexion no continua al apagar o suspender el PC host.
+
+REGISTROS
+Loader: carpeta logs junto a Competitive Loader.exe.
+Servidor temporal: logs/temporary-room-host/service.log y tunnel.log.
+El ZIP no incluye ISO, memory ni datos de una instalacion del anfitrion.
+La prueba manual por Internet todavia esta pendiente de vuestro resultado.
+
+Fuente del tunel: https://github.com/cloudflare/cloudflared
+Documentacion: https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/

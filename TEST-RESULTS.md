@@ -149,3 +149,13 @@ Dos bots del juego real conectaron mediante el Worker propio y ambos logs confir
 Una comprobación adicional del ejecutable revisado con BT3_SIGN_TEST=post recibió /v1/hello en loopback y terminó con código cero. Registro privado: online-tests/score-001/host/btc-matchmaking-url-smoke.log. La sala pública de torneo y el espectador remoto por replay siguen pendientes; el nuevo Worker solo enlaza combates 1 vs 1.
 
 El paquete final 1.5.2 pasó --smoke-test, --smoke-room, --smoke-service y --smoke-runtime con salida cero tras reconstruirse con la URL pública predeterminada. Se copió el mismo EXE a bin y al candidato local Competitive-Rising-Battle-1.5.2. La secuencia manual del humano contra tres bots y la revisión visual siguen pendientes.
+
+## Prueba de salas con amigos 1.5.3 — paquete preparado
+
+Pasan 59 pruebas. Dos clientes HTTP reales comprueban que solo el host pueda añadir o retirar bots del coordinador, que los invitados reciban sus mensajes/estado, que un bot expulsado no reaparezca y que la salida/caducidad del host cierre la sala. Los bots de sala no juegan combates. Un reloj controlado verifica que mantenerlos presentes no prolongue la sesión del anfitrión ausente. La configuración de servicio conserva el runtime. El iniciador temporal espera una conexión registrada antes de guardar su URL y su cierre solo termina los Popen propios, con cancelación del monitor.
+
+La fixture nativa con ImGui/SDL pasa después de recompilar el payload. El EXE congelado pasa --smoke-test, --smoke-room, --smoke-service, --smoke-runtime y --smoke-room-test-host, todos con salida cero. Este último abre/cierra el controlador sin iniciar procesos ni publicar servicios.
+
+Se preparó un ZIP para invitados con lista explícita de archivos públicos: EXE, guías y licencias. Se verificaron su integridad y el hash del EXE; no contiene configuraciones, logs, ISO ni memory. La carpeta exclusiva del host contiene el mismo EXE y cloudflared 2026.10.1 del repositorio oficial, con licencia Apache 2.0. Hash SHA256 del helper: 4d2490e74082c5d48dbfedaf92576fa5bd1702379ab88eb7faa0cfbe8dc891b6.
+
+La revisión automática bloqueó el comando de arranque del servicio y Quick Tunnel, sin aportar motivo concreto. No se repitió por otro mecanismo. El túnel no está iniciado: el usuario debe abrir Iniciar servidor de prueba.cmd y pulsar Iniciar. La prueba manual con el amigo por Internet, la operatividad real de ese túnel y la revisión visual siguen pendientes. No se publicó una Release.

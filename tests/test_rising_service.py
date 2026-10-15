@@ -4,6 +4,41 @@ from rising_service import Coordinator, ServiceClient, ServiceServer, room_code
 
 
 class ServiceTests(unittest.TestCase):
+    def test_remote_host_bots_chat_permissions_kick_and_cleanup(self):
+        server=ServiceServer(port=0)
+        try:
+            host=ServiceClient(f"http://127.0.0.1:{server.port}")
+            s=host.send("create",name="Host",title="Friends",capacity=5,protocol=PROTOCOL,edition="BTC")
+            guest=ServiceClient(f"http://127.0.0.1:{server.port}",s["room_code"])
+            guest.send("join",name="Friend",protocol=PROTOCOL,edition="BTC")
+            for op in ("bots_add","bots_remove"):
+                with self.assertRaises(RoomError):guest.send(op,count=2)
+            s=host.send("bots_add",count=2)
+            self.assertEqual(len(s["users"]),4)
+            bots=[u for u in s["users"] if u["bot"]]
+            self.assertEqual(len(bots),2)
+            self.assertTrue(all(u["ready"] and not u["game_bot"] for u in bots))
+            self.assertTrue(any("Bot de sala conectado" in m["text"] for m in guest.send("poll")["messages"]))
+            host.send("kick",target=bots[0]["id"])
+            self.assertEqual(len(guest.send("poll")["users"]),3)
+            self.assertEqual(len(host.send("bots_remove")["users"]),2)
+            host.send("leave")
+            with self.assertRaises(RoomError):guest.send("poll")
+            self.assertFalse(server.coordinator.bots)
+        finally:server.close()
+
+    def test_service_bot_heartbeat_does_not_keep_host_alive(self):
+        now=[0];service=Coordinator(clock=lambda:now[0])
+        s=service.handle(dict(op="create",name="Host",title="Expiry",capacity=4,protocol=PROTOCOL,edition="BTC"))
+        args=dict(code=s["room_code"],token=s["token"])
+        service.handle(dict(op="bots_add",count=2,**args))
+        now[0]=25;service.handle(dict(op="poll",**args))
+        now[0]=50
+        self.assertEqual(len(service.handle(dict(op="poll",**args))["users"]),3)
+        now[0]=81
+        with self.assertRaises(RoomError):service.handle(dict(op="poll",**args))
+        self.assertFalse(service.bots)
+
     def test_32_members_and_capacity(self):
         service=Coordinator()
         first=service.handle(dict(op="create",name="Host",title="Full",capacity=32,protocol=PROTOCOL,edition="BTC"))

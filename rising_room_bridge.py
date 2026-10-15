@@ -264,6 +264,11 @@ class RoomBridge:
                 self.snapshot = self.client.send(operation, **values)
                 self.log.info("ROOM_TOURNAMENT op=%s revision=%s", operation, self.snapshot["tournament"]["revision"])
             elif op in (7, 8):
+                from rising_service import ServiceClient
+                if isinstance(self.client, ServiceClient) and not self.server:
+                    self.snapshot = self.client.send("bots_add" if op == 7 else "bots_remove", count=command.target)
+                    self.notice = "Bots de sala actualizados. Prueban usuarios y chat; no juegan combates."
+                    return
                 if not self.server:
                     raise RoomError("Solo el anfitrión puede gestionar los bots")
                 if op == 7:

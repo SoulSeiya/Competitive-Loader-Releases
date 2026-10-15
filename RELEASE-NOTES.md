@@ -1,3 +1,8 @@
+Competitive Loader 1.5.3 — candidato de prueba con amigos.
+Sala por HTTPS, chat compartido y bots de sala administrados por el anfitrión.
+El iniciador del anfitrión permite levantar un túnel temporal; aún requiere prueba entre dos equipos.
+Los bots de sala no pelean ni habilitan espectadores remotos.
+
 Competitive Loader 1.5.2: matchmaking propio activo en Cloudflare.
 Worker predeterminado: https://btc-matchmaking.paulogomez41.workers.dev
 Sala publica del torneo y relay TURN pendientes.

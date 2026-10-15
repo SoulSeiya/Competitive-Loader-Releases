@@ -29,10 +29,11 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 2)
+APP_VERSION = (1, 5, 3)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Prueba compartida de salas por HTTPS: usuarios reales, chat y bots de sala administrados por el host.\n"
     "• Matchmaking BTC propio por defecto en Cloudflare; la app ya no recurre al servidor oficial del decomp.\n"
     "• Puedes cambiar el Worker desde el Loader. La sala de torneo pública y el relay siguen pendientes.\n"
     "• Pestaña Torneos BTC dentro de Dragon Net Battle.\n"
@@ -1585,6 +1586,10 @@ def launch_patched(
         from btc_matchmaking import environment
         try:
             launch_env.update(environment(load_config(), launch_env))
+            room_url = load_config().get("btc_room_service_url")
+            if room_url:
+                from rising_service import ServiceClient
+                launch_env["BTC_ROOM_SERVICE"] = ServiceClient(room_url).url.removesuffix("/v1/rooms")
         except ValueError as exc:
             raise LoaderError(str(exc)) from None
     online_hash = ""
@@ -2017,6 +2022,8 @@ def prepare(release: Path, iso: Path, runtime: Path, force_iso: bool = False) ->
     previous = load_config()
     if "btc_matchmaking_url" in previous:
         state["btc_matchmaking_url"] = previous["btc_matchmaking_url"]
+    if "btc_room_service_url" in previous:
+        state["btc_room_service_url"] = previous["btc_room_service_url"]
     save_config(state)
     (runtime / "IMPORTANTE - iniciar con Competitive Loader.txt").write_text(
         "No abras Tenkaichi3Decomp.exe directamente.\n\n"

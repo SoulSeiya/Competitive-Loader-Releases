@@ -71,3 +71,12 @@ Loader: https://btc-matchmaking.paulogomez41.workers.dev . El perfil Release no
 recurre al servidor oficial. El botón Configurar matchmaking BTC permite cambiar
 la URL; guardar vacío desactiva los códigos. El coordinador público del torneo y
 el relay TURN siguen pendientes. [Operación del Worker](service/cloudflare-matchmaking/README.md).
+
+### Candidato con amigos 1.5.3
+
+Controles de bots de sala disponibles también mediante el coordinador HTTPS,
+con autorización del anfitrión. El Loader guarda la URL de salas y la aplica al
+menú del juego. `--room-test-host` abre un iniciador explícito de servicio local y
+Quick Tunnel (requiere cloudflared.exe junto al Loader); solo detiene sus dos
+procesos propios. La dirección y las salas son temporales. No se ha validado aún
+una sesión manual entre dos equipos. Véase RISING-BATTLE.md.

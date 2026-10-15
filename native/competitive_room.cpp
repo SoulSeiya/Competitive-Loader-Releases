@@ -215,6 +215,12 @@ static void risingRoomContent() {
             if (!risingState.connected) {
                 ImGui::InputText("Tu nombre", risingCommand.name, sizeof(risingCommand.name));
                 static char service[129] = "http://127.0.0.1:7010", serviceCode[16];
+                static bool serviceInitialized = false;
+                if(!serviceInitialized) {
+                    const char *configured=SDL_getenv("BTC_ROOM_SERVICE");
+                    if(configured && configured[0]) SDL_snprintf(service,sizeof(service),"%s",configured);
+                    serviceInitialized=true;
+                }
                 ImGui::InputText("Servicio de salas BTC",service,sizeof(service));
                 ImGui::TextWrapped("Un mismo servicio para todos los miembros. El local sirve solo para pruebas en este equipo; Internet requiere nuestro servidor HTTPS publicado.");
                 if(ImGui::Button("Iniciar servicio local de prueba")) risingSend(23);
@@ -271,13 +277,13 @@ static void risingRoomContent() {
                     ImGui::Text("Clave: %s", risingState.key);
                     ImGui::SameLine();
                     if (ImGui::Button("Copiar clave")) SDL_SetClipboardText(risingState.key);
+                    }
                     if (ImGui::Button("Anadir 1 bot de prueba")) risingSend(7, 1);
                     ImGui::SameLine();
                     if (ImGui::Button("Llenar con bots")) risingSend(7, risingState.capacity > risingState.count ? risingState.capacity - risingState.count : 0);
                     ImGui::SameLine();
                     if (ImGui::Button("Retirar bots")) risingSend(8);
                     ImGui::TextWrapped("Los bots prueban usuarios, chat, listo y expulsiones; no juegan combates.");
-                    }
                 }
                 if (ImGui::Button("Cambiar listo / esperando")) risingSend(6);
                 ImGui::SameLine();

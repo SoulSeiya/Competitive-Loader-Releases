@@ -34,6 +34,8 @@ class ReleaseApp(CompetitiveApp):
                   bg=self.PANEL, fg=self.TEXT).pack(side="bottom", fill="x")
         tk.Button(root,text="Configurar matchmaking BTC (Worker)",command=self.configure_matchmaking,
                   bg=self.PANEL,fg=self.TEXT).pack(side="bottom",fill="x")
+        tk.Button(root,text="Configurar servicio de salas BTC",command=self.configure_room_service,
+                  bg=self.PANEL,fg=self.TEXT).pack(side="bottom",fill="x")
         self._append("Perfil competitivo: intro y audio corregidos; chat y pausa oficiales.\n"
                      "Marcador online persistente entre peleas y revanchas.\n"
                      "Las actualizaciones del decomp se validan antes de instalarlas.\n"
@@ -82,6 +84,23 @@ class ReleaseApp(CompetitiveApp):
         core.save_config(config)
         self._append("Matchmaking BTC configurado para el próximo inicio.\n" if value else
                      "Sin Worker BTC: códigos de pelea pendientes; offline e IP siguen disponibles.\n")
+
+    def configure_room_service(self):
+        if self.busy or (self.session and self.session.running):
+            messagebox.showinfo(core.APP_NAME,"Cierra el juego antes de cambiar el servicio de salas.",parent=self.root)
+            return
+        config=core.load_config()
+        value=simpledialog.askstring("Salas BTC","Pega la dirección HTTPS que te da el anfitrión.\nAmbos deben usar la misma dirección; después compartid el room code BTC.",
+            initialvalue=config.get("btc_room_service_url","http://127.0.0.1:7010"),parent=self.root)
+        if value is None:return
+        from rising_service import ServiceClient
+        from rising_room import RoomError
+        try:value=ServiceClient(value).url.removesuffix("/v1/rooms")
+        except (RoomError,ValueError) as exc:
+            messagebox.showerror(core.APP_NAME,str(exc),parent=self.root);return
+        config["btc_room_service_url"]=value
+        core.save_config(config)
+        self._append("Servicio de salas guardado para el próximo inicio.\n")
 
     def _append(self, text):
         super()._append(text)
@@ -189,7 +208,10 @@ def main():
 
 
 if __name__ == "__main__":
-    if "--tournament-bot-worker" in sys.argv:
+    if "--room-test-host" in sys.argv or "--smoke-room-test-host" in sys.argv:
+        from temporary_room_host import main as host_main
+        host_main()
+    elif "--tournament-bot-worker" in sys.argv:
         from rising_game_bots import run_worker
         run_worker(sys.argv[sys.argv.index("--tournament-bot-worker") + 1])
     elif "--smoke-room" in sys.argv:

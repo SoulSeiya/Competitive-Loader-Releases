@@ -1,8 +1,8 @@
-# Rising Battle 1.5.1 — Dragon Net Battle, salas y torneos
+# Rising Battle 1.5.3 — Dragon Net Battle, salas y torneos
 
 ## Entrar y probar
 
-Abre el Loader 1.5.1. En **F1 → Online → Dragon Net Battle** verás **Partidas** y **Torneos BTC**. Partidas conserva Host, Quick match y Join con sus códigos nativos, reglas y FT. La entrada Tenkaichi Budokai Online también abre Torneos BTC como acceso alternativo.
+Abre el Loader 1.5.3. En **F1 → Online → Dragon Net Battle** verás **Partidas** y **Torneos BTC**. Partidas conserva Host, Quick match y Join con sus códigos nativos, reglas y FT. La entrada Tenkaichi Budokai Online también abre Torneos BTC como acceso alternativo.
 
 En Torneos BTC, pulsa **Crear prueba: tú + 3 bots, todos contra mí**. Se crean cuatro inscritos y una sala del servicio local con código BTC de seis caracteres. Se propone FT1; puedes cambiar nombre y FT, guardar e iniciar la prueba. Jugarás tres sets consecutivos, uno contra cada bot, incluso si pierdes. Tú conservas P1 y el control de menús. Los bots confirman y usan entradas programadas de movimiento, golpes y ki; no son IA avanzada ni cambian el daño.
 
@@ -20,7 +20,7 @@ El servicio BTC propio mantiene varias personas conectadas bajo **BTC-XXXXXX**. 
 
 Los códigos nativos de Dragon Net Battle siguen enlazando exclusivamente a los dos jugadores de cada combate. El código BTC pertenece a la sala completa y no se consume al empezar una pelea. La conexión directa avanzada por IP/VPN e invitación BTC1 continúa disponible.
 
-El coordinador está implementado y probado localmente, pero **todavía no está alojado en Internet**. Para usarlo entre equipos sin exponer puertos de sala, hay que desplegarlo con HTTPS y configurar la misma URL en los clientes. No hay cuenta ni endpoint público configurados. Véase service/README.md. No se distribuye ni retransmite contenido del juego.
+El coordinador está probado localmente. En 1.5.3 puedes publicarlo temporalmente desde tu PC con el iniciador del anfitrión y compartir su dirección HTTPS. El alojamiento permanente y la prueba manual entre dos equipos siguen pendientes. Véase service/PRUEBA-CON-AMIGOS.txt. No se distribuye ni retransmite contenido del juego.
 
 ## Límites y registros
 
@@ -44,3 +44,22 @@ Se verificaron Host/Join por HTTPS y conexión de dos instancias reales del jueg
 a través del Worker propio. La sala de torneo sigue usando el coordinador local;
 el Worker publicado enlaza solo las peleas. El espectador y la sala pública del
 torneo siguen pendientes. La guía está en service/cloudflare-matchmaking.
+
+## Prueba con amigos 1.5.3
+
+El paquete del anfitrión incluye Iniciar servidor de prueba.cmd y cloudflared.exe.
+Ejecuta ese iniciador, pulsa Iniciar servidor de prueba y deja la ventana abierta.
+Cuando el túnel conecte, aparecerá una dirección HTTPS temporal; se guarda en la
+configuración del Loader de esa carpeta. Inicia el juego después de este paso.
+Comparte la dirección con tu amigo, quien debe guardarla en Configurar servicio
+de salas BTC del Loader antes de iniciar su juego. Ambos usan Dragon Net Battle →
+Torneos BTC. Crea sala, comparte BTC-XXXXXX y usa Tab para conversar y F2 para
+consultar el bracket. El host puede añadir bots de sala, retirarlos y expulsarlos.
+
+Este servidor temporal depende de tu PC. Al cerrar el iniciador, detenerlo o
+apagar el equipo se pierden las salas. Al reiniciar el túnel cambia la dirección:
+hay que volver a compartirla y guardarla. Solo se publica la API del coordinador;
+no se retransmiten ISO, memory ni archivos personales. Es una prueba provisional,
+no el alojamiento permanente de torneos. Los bots añadidos en la sala simulan
+usuarios/listo/chat/inscripción; no juegan combates. La prueba local de tres bots
+reales de combate sigue disponible aparte en Laboratorio.
