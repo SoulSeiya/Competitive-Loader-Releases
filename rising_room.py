@@ -40,7 +40,7 @@ class Room:
         self.host_token, self.host_id = self._add(name)
         self._announce("Sala creada")
 
-    def _add(self, name):
+    def _add(self, name, bot=False):
         name = text(name, 24)
         if not name:
             raise RoomError("Escribe tu nombre")
@@ -48,7 +48,7 @@ class Room:
             raise RoomError("Ese nombre ya está en la sala")
         self.next_id += 1
         token = secrets.token_urlsafe(32)
-        self.users[token] = dict(id=self.next_id, name=name, ready=False, seen=self.clock())
+        self.users[token] = dict(id=self.next_id, name=name, ready=False, bot=bot, seen=self.clock())
         return token, self.next_id
 
     def _announce(self, message, author="Sala"):
@@ -85,7 +85,10 @@ class Room:
                     raise RoomError("Clave de sala incorrecta")
                 if len(self.users) >= self.capacity:
                     raise RoomError("La sala está llena")
-                token, _ = self._add(data.get("name"))
+                bot = data.get("bot") is True
+                if bot and token != self.host_token:
+                    raise RoomError("Solo el anfitrión puede añadir bots de prueba")
+                token, _ = self._add(data.get("name"), bot=bot)
                 self._announce(self.users[token]["name"] + " entró en la sala")
             elif not isinstance(token, str) or token not in self.users:
                 raise RoomError("Ya no perteneces a esta sala (expulsión o desconexión)")
@@ -116,7 +119,7 @@ class Room:
                 raise RoomError("Operación desconocida")
             return dict(protocol=PROTOCOL, title=self.title, capacity=self.capacity,
                         self_id=user["id"], host_id=self.host_id, token=token,
-                        users=[{k: u[k] for k in ("id", "name", "ready")} for u in self.users.values()],
+                        users=[{k: u[k] for k in ("id", "name", "ready", "bot")} for u in self.users.values()],
                         messages=list(self.messages))
 
 
@@ -225,6 +228,8 @@ class RoomClient:
                     user["name"] = text(user.get("name"), 24)
                     if type(user.get("ready")) is not bool:
                         raise ValueError()
+                    if type(user.get("bot", False)) is not bool:
+                        raise ValueError()
                 for message in result["messages"]:
                     if not isinstance(message, dict):
                         raise ValueError()
@@ -239,6 +244,7 @@ class RoomClient:
 def smoke_test():
     """Exercise the packaged HTTP dependencies without opening a game or a public port."""
     server = RoomServer("BTC smoke", "Host", port=0, bind="127.0.0.1")
+    bots = None
     try:
         host = RoomClient("127.0.0.1", server.port, server.room.host_token)
         guest = RoomClient("127.0.0.1", server.port)
@@ -256,5 +262,14 @@ def smoke_test():
             pass
         else:
             raise RoomError("La prueba no revocó al invitado expulsado")
+        from rising_invite import make_invite, read_invite
+        from rising_room_bots import RoomBots
+        address, port, key = read_invite(make_invite("127.0.0.1", server.port, server.room.key))
+        invited = RoomClient(address, port)
+        invited.send("join", name="Code Guest", key=key, protocol=PROTOCOL, edition="BTC")
+        bots = RoomBots(server)
+        if bots.add(2) != 2 or len(host.send("poll")["users"]) != 4:
+            raise RoomError("Falló la prueba de bots empaquetados")
     finally:
+        if bots: bots.close()
         server.close()

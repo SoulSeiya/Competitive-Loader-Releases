@@ -9,7 +9,8 @@
 #include <string.h>
 #include "../native/competitive_room.cpp"
 bool nativeNetOpen = true;
-extern "C" void OriginalNetMenu(void) {}
+static int originalMenuCalls;
+extern "C" void OriginalNetMenu(void) { ++originalMenuCalls; }
 extern "C" void Ui_Toggle(void) { nativeNetOpen = false; }
 extern "C" void Port_LobbyCancel(void) {}
 extern "C" { volatile int gPortNetMenuRequest; }
@@ -34,14 +35,19 @@ int main(int argc, char **argv) {
     io.DeltaTime = 1.0f / 60.0f;
     unsigned char *pixels; int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+    frame();
+    assert(originalMenuCalls == 1 && !risingRoomRequested); // Native entry is never replaced by default.
+    risingRoomRequested = true; // Explicit development panel entry, pending the TBO integration.
     frame(); frame();
     assert(risingShared && !risingState.connected);
     assert(ImGui::GetDrawData()->CmdListsCount > 0);
     strcpy(risingCommand.name, "Native Host");
     strcpy(risingCommand.title, "Rising Native UI");
+    strcpy(risingCommand.address, "127.0.0.1");
     risingCommand.port = (uint32_t)atoi(argv[2]);
     assert(risingSend(1)); waitCommand();
     assert(risingState.connected && risingState.count == 1);
+    assert(strncmp(risingState.invite, "BTC1-", 5) == 0);
     frame(); frame();
     assert(ImGui::GetDrawData()->CmdListsCount > 0);
     strcpy(risingCommand.text, "Anuncio desde el menu nativo");
@@ -50,6 +56,12 @@ int main(int argc, char **argv) {
     assert(strstr(risingState.chat[1], "Anuncio desde el menu nativo"));
     assert(risingSend(6)); waitCommand();
     assert(risingState.users[0].flags == 1);
+    assert(risingSend(7, 3)); waitCommand();
+    assert(risingState.count == 4);
+    assert(risingState.users[1].flags & 2);
+    frame(); frame();
+    assert(risingSend(8)); waitCommand();
+    assert(risingState.count == 1);
     frame();
     // Closing the panel must not close the room: it persists during combat.
     nativeNetOpen = false;

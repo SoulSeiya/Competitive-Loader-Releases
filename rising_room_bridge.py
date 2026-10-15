@@ -3,10 +3,13 @@ import ctypes as C
 import logging
 import mmap
 import secrets
+import socket
 import threading
 import time
 
 from rising_room import PROTOCOL, RoomClient, RoomError, RoomServer
+from rising_invite import make_invite, read_invite
+from rising_room_bots import RoomBots
 
 MAGIC = 0x52435442
 
@@ -20,7 +23,7 @@ class State(C.Structure):
                 ("count", C.c_uint32), ("chat_count", C.c_uint32), ("capacity", C.c_uint32),
                 ("title", C.c_char * 97), ("address", C.c_char * 129),
                 ("notice", C.c_char * 257), ("key", C.c_char * 65),
-                ("users", User * 32), ("chat", (C.c_char * 385) * 64)]
+                ("users", User * 32), ("chat", (C.c_char * 385) * 64), ("invite", C.c_char * 385)]
 
 
 class Command(C.Structure):
@@ -49,12 +52,18 @@ class RoomBridge:
         self.name = "Local\\BTC-RisingBattle-" + secrets.token_hex(16)
         self.memory = mmap.mmap(-1, C.sizeof(Shared), tagname=self.name)
         self.shared = Shared.from_buffer(self.memory)
-        self.shared.magic, self.shared.version = MAGIC, PROTOCOL
+        self.shared.magic, self.shared.version = MAGIC, 2
         self.log = logger or logging.getLogger("competitive.room")
         self.client = None
         self.server = None
+        self.bots = None
         self.snapshot = None
-        self.address = ""
+        try:
+            self.local_address = socket.gethostbyname(socket.gethostname())
+        except OSError:
+            self.local_address = "127.0.0.1"
+        self.address = self.local_address
+        self.invite = ""
         self.key = ""
         self.notice = "Crea una sala o únete por IP y clave."
         self.stop = threading.Event()
@@ -66,6 +75,7 @@ class RoomBridge:
         state = State()
         state.notice = encoded(self.notice, 257)
         state.address, state.key = encoded(self.address, 129), encoded(self.key, 65)
+        state.invite = encoded(self.invite, 385)
         if self.snapshot:
             s = self.snapshot
             state.connected = 1
@@ -74,7 +84,7 @@ class RoomBridge:
             state.count = len(s["users"])
             for i, user in enumerate(s["users"]):
                 state.users[i].id = user["id"]
-                state.users[i].flags = int(bool(user["ready"]))
+                state.users[i].flags = int(bool(user["ready"])) | (2 if user.get("bot") else 0)
                 state.users[i].name = encoded(user["name"], 65)
             state.chat_count = len(s["messages"])
             for i, message in enumerate(s["messages"]):
@@ -84,6 +94,9 @@ class RoomBridge:
         self.shared.state_seq += 1
 
     def _leave(self):
+        if self.bots:
+            self.bots.close()
+            self.bots = None
         if self.client:
             try:
                 self.client.send("leave")
@@ -94,29 +107,37 @@ class RoomBridge:
         if self.server:
             self.server.close()
             self.server = None
-        self.address = self.key = ""
+        self.address = self.local_address
+        self.key = self.invite = ""
 
     def _execute(self, command):
         op = command.op
-        if op in (1, 2):
+        if op in (1, 2, 9):
             if self.client:
                 raise RoomError("Sal de la sala actual antes de cambiar")
             if op == 1:
                 if not 1 <= command.port <= 65535:
                     raise RoomError("Puerto inválido")
+                address = decoded(command.address) or self.local_address
+                RoomClient(address, command.port)
                 self.server = RoomServer(decoded(command.title), decoded(command.name),
                                          command.port, command.capacity)
                 self.client = RoomClient("127.0.0.1", self.server.port, self.server.room.host_token)
-                self.address = f"Puerto {self.server.port}: comparte tu IP y la clave"
+                self.address = f"{address}:{self.server.port} (TCP)"
                 self.key = self.server.room.key
+                self.invite = make_invite(address, self.server.port, self.key)
                 self.snapshot = self.client.send("poll")
                 self.log.info("ROOM_CREATED capacity=%s port=%s", command.capacity, command.port)
             else:
-                client = RoomClient(decoded(command.address), command.port)
-                self.snapshot = client.send("join", name=decoded(command.name), key=decoded(command.key),
+                if op == 9:
+                    address, port, key = read_invite(decoded(command.text))
+                else:
+                    address, port, key = decoded(command.address), command.port, decoded(command.key)
+                client = RoomClient(address, port)
+                self.snapshot = client.send("join", name=decoded(command.name), key=key,
                                             protocol=PROTOCOL, edition="BTC")
                 self.client = client
-                self.address = f"{decoded(command.address)}:{command.port}"
+                self.address = f"{address}:{port} (TCP)"
                 self.log.info("ROOM_JOINED users=%s", len(self.snapshot["users"]))
             self.notice = "Sala conectada. Los combates se conectan desde Partida BTC."
         elif op == 5:
@@ -131,6 +152,22 @@ class RoomBridge:
                 self.log.info("ROOM_KICK target=%s", command.target)
             elif op == 6:
                 self.snapshot = self.client.send("ready")
+            elif op in (7, 8):
+                if not self.server:
+                    raise RoomError("Solo el anfitrión puede gestionar los bots")
+                if op == 7:
+                    if not self.bots:
+                        self.bots = RoomBots(self.server)
+                    added = self.bots.add(command.target)
+                    self.log.info("ROOM_TEST_BOTS_ADDED count=%s", added)
+                    self.notice = f"Añadidos {added} bots de prueba. No controlan personajes."
+                else:
+                    if self.bots:
+                        self.bots.close()
+                        self.bots = None
+                    self.notice = "Bots de prueba retirados."
+                self.snapshot = self.client.send("poll")
+                return
             else:
                 raise RoomError("Operación desconocida")
             self.notice = "Sala conectada."
@@ -151,7 +188,7 @@ class RoomBridge:
                     except (RoomError, OSError, ValueError, KeyError, TypeError) as exc:
                         self.notice = str(exc)
                         self.log.warning("ROOM_COMMAND_FAILED op=%s reason=%s", command.op, self.notice)
-                        if command.op in (1, 2):
+                        if command.op in (1, 2, 9):
                             self._leave()
                     self.shared.ack_seq = seq
                     self._publish()

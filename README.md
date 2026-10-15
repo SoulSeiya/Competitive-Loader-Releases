@@ -3,9 +3,9 @@ Código y publicaciones de Competitive Loader.
 
 El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
 
-## Rising Battle 1.4.0 — candidato de prueba
+## Rising Battle 1.4.1 — desarrollo
 
-Sala BTC dentro del juego con lista de usuarios, chat, estado listo y expulsiones del anfitrión. Hasta 32 usuarios por IP/puerto y clave, alojada en el equipo anfitrión. Abre F1 → Rising Battle - Sala BTC. La conexión de combate sigue en Partida BTC; espectadores y torneos quedan pendientes. [Uso e implementación](RISING-BATTLE.md).
+Dragon Net Battle conserva su menú y códigos. El panel provisional se abre desde F1 → Pruebas de sala BTC (desarrollo), con chat, usuarios, bots y expulsiones. El objetivo corregido es adaptar Tenkaichi Budokai Online a los torneos BTC; esa integración y el servicio público de códigos cortos siguen pendientes. [Uso e implementación](RISING-BATTLE.md).
 
 ## Release 1.3.2
 

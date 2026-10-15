@@ -1,10 +1,13 @@
-# Competitive Loader 1.4.0 — Rising Battle (candidato de prueba)
+# Competitive Loader 1.4.1 — salas BTC (desarrollo)
 
-- Sala BTC dentro del juego: F1 → Rising Battle - Sala BTC, o la entrada online del menú principal.
+- Dragon Net Battle conserva su ventana, controles y códigos originales. La sustitución de su entrada de 1.4.0 fue una interpretación incorrecta de la petición del usuario.
+- Panel provisional: F1 → Pruebas de sala BTC (desarrollo). La adaptación del modo Tenkaichi Budokai Online todavía está pendiente.
+- Bots de prueba por HTTP: añadir, llenar hasta la capacidad de sala y retirar. Prueban chat, listo y expulsiones, sin controlar personajes.
+- Invitación BTC1 con dirección, puerto y clave incorporados. No es un código corto de un directorio público; ese servicio requiere servidor y despliegue propios.
 - Crear y unirse por IP, puerto TCP y clave de invitación; capacidad configurable de 2 a 32 usuarios.
 - Lista compartida de usuarios, estado Listo / Esperando, chat y anuncios de entradas, salidas y expulsiones.
 - Solo el anfitrión puede expulsar. Al cerrar su sala o el Loader, la sala termina para todos.
-- La sala permanece conectada durante los combates. Partida BTC abre la conexión nativa y conserva FT1–FT5 y las reglas existentes; los jugadores comparten el código de combate por el chat.
+- La sala permanece conectada durante los combates. Abrir Dragon Net Battle vuelve a la conexión nativa y conserva FT1–FT5 y las reglas existentes; los jugadores comparten el código de combate por el chat.
 - El anfitrión aloja la sala en su equipo: requiere red local, VPN o puerto TCP accesible. No usa un servidor público ni relay de salas.
 - Torneos, brackets y espectadores quedan para la siguiente etapa. Detalles y pruebas: RISING-BATTLE.md.
 

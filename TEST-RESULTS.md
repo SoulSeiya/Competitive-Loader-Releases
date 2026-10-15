@@ -98,3 +98,14 @@ Una instancia propia del juego real, usando el runtime de laboratorio, abrió el
 El EXE congelado pasó --smoke-test, --smoke-runtime y --smoke-room con salida cero. Este último crea una sala exclusivamente en loopback y comprueba entrada, chat y expulsión con los módulos realmente empaquetados; también queda integrado en GitHub Actions. No hay todavía una prueba entre equipos por Internet ni validación con 32 usuarios concurrentes. La capacidad es un límite de sala, no una cantidad admitida de jugadores en un combate.
 
 El candidato conserva la conexión nativa de combates de dos jugadores, FT y el marcador. No implementa todavía espectadores, relevos, brackets ni anuncios automáticos de cruces de torneo.
+
+
+## Corrección de alcance y bots 1.4.1 — desarrollo
+
+El usuario aclaró que Dragon Net Battle debe conservarse: el objetivo es adaptar Tenkaichi Budokai Online, bloqueado por datos modificados, a un sistema BTC de salas/torneos. La ruta normal de build_net vuelve a su función original y el wrapper de ImGui::Begin reenvía su nombre sin cambios. El panel de pruebas solo se activa con su botón explícito de desarrollo en Settings/F1. Esta revisión no integra todavía la sala en el modo TBO ni elimina su comprobación global de datos originales.
+
+Las 33 pruebas pasan. Nuevos casos validan invitaciones BTC1, corrupción y entrada HTTP por invitación; bots autorizados solo por el anfitrión; sala completa con 31 bots más el anfitrión; mensajes, cambios de listo, expulsión sin reconexión automática y retirada de bots. Dos puentes Windows verifican entrada con código, gestión de bots y rechazo de un invitado que intenta añadirlos. La ABI de memoria compartida pasa a versión 2, con tamaños C++ y Python coincidentes.
+
+La prueba nativa con ImGui/SDL reales pasa: primero comprueba que la entrada normal delega a Dragon Net Battle, activa expresamente el panel de desarrollo y prueba creación, invitación, chat, listo, tres bots, retirada y salida. El juego real de laboratorio también registró primero la ruta nativa preservada y después el panel provisional con su puente conectado, permaneciendo estable hasta una parada controlada de esa única instancia.
+
+La invitación BTC1 incorpora una dirección y no sustituye el servicio público de códigos cortos solicitado. Se ha investigado Cloudflare Workers/Durable Objects y el dominio workers.dev; todavía no existe cuenta, despliegue ni endpoint público. Las pruebas locales no comprueban NAT, relay, Internet, espectadores ni torneos completos.

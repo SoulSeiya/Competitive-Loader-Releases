@@ -1,33 +1,36 @@
-# Rising Battle — salas BTC (1.4.0, prueba local)
+# Rising Battle 1.4.1 — desarrollo
 
-Abre el juego con el Loader de prueba. En **F1 → Rising Battle - Sala BTC** se abre la sala dentro del juego. La entrada online del menú principal del decomp también abre Rising Battle.
+Dragon Net Battle conserva su entrada, ventana y códigos originales. La ruta normal vuelve al menú nativo; el panel provisional se abre solo desde **F1 → Pruebas de sala BTC (desarrollo)**. La versión de prueba 1.4.0 sustituyó ese menú por una interpretación incorrecta de la petición.
 
-## Crear y entrar
+El modo que se debe adaptar es **Tenkaichi Budokai Online**, implementado en src/menu/port_tbo.c del decomp. Tb_Vanilla comprueba los datos originales del disco y bloquea ediciones modificadas. Su adaptación a los torneos BTC sigue pendiente. No se ha desactivado globalmente esa validación.
 
-El anfitrión escribe su nombre, el nombre de la sala, el puerto TCP (7001 por defecto) y la capacidad (2–32 usuarios). **Crear sala BTC** inicia el servicio en su equipo y genera una clave de invitación. Debe compartir su IP, puerto y clave con los invitados.
+## Probar bots y salas
 
-Los invitados usan **Unirse a sala**, con su nombre, la IP o nombre de equipo del anfitrión, el puerto y la clave. Para una prueba en el mismo equipo se usa `127.0.0.1`, un Loader distinto por cliente y una sola sala anfitriona en ese puerto. No ejecutes dos juegos sobre la misma carpeta de runtime/memory: usa instalaciones separadas para combatir.
+Crea una sala con nombre, capacidad 2–32 y puerto TCP (7001 por defecto). El anfitrión dispone de **Añadir 1 bot de prueba**, **Llenar con bots** y **Retirar bots**. Los bots usan sesiones HTTP reales, aparecen como BOT, escriben un mensaje y alternan listo/esperando. Pueden expulsarse y no se reconectan solos. No controlan personajes ni simulan latencia externa.
 
-Entre equipos se necesita red local, VPN o acceso al puerto TCP del anfitrión. Esta primera implementación no ofrece servidor público, descubrimiento, relay ni códigos globales de sala. La clave de invitación de la sala es distinta del código de partida del decomp.
+La sala conserva lista, chat, listo y expulsiones del anfitrión. Solo el anfitrión puede añadir bots. Cerrar su sala o el Loader la termina; los miembros caducan sin latido. Expulsar revoca la sesión actual, sin bloquear permanentemente una nueva entrada con invitación válida.
 
-## Dentro de la sala
+**Abrir Dragon Net Battle** vuelve al menú de combate nativo, sin renombrarlo ni añadir controles a su ventana. La sala sigue conectada mientras el Loader permanezca abierto. Para volver al panel provisional se usa su entrada explícita de F1.
 
-- Lista compartida de usuarios, con identificación del anfitrión y del usuario local.
-- Estado **Listo / Esperando**, indicado por cada participante; no inicia un combate automáticamente.
-- Chat con los últimos 64 mensajes y anuncios de entradas, salidas y expulsiones.
-- El anfitrión puede expulsar a otro usuario; su sesión de sala queda revocada. Puede volver a entrar con una invitación válida: expulsar no es un bloqueo permanente.
-- **Salir de sala** abandona la sala. **Cerrar sala**, en el anfitrión, la termina para todos. También termina al cerrar su Loader o perder su conexión durante 30 segundos.
+## Invitación provisional BTC1
 
-La sala permanece conectada al cerrar su panel y durante las peleas, mientras el Loader siga abierto. **Partida BTC** abre el menú de conexión nativo con FT y las reglas existentes. Los jugadores comparten el código de combate por el chat y se conectan allí. **Volver a la sala Rising Battle** cancela la búsqueda de combate pendiente y regresa al panel. Al regresar de la pelea se puede abrir de nuevo la sala con F1.
+Revisa **IP / equipo para la invitación** con la dirección local, VPN o un nombre accesible. **Copiar código de sala** copia una invitación que se pega en **Unirse a sala → Entrar con código**. También existe la entrada por IP/puerto/clave.
 
-Los combates siguen siendo de dos jugadores. La gestión de brackets, inscripciones de personajes, resultados automáticos, relevos y espectadores se añadirá después; no se presenta a quienes esperan como espectadores de una pelea.
+BTC1 incorpora dirección, puerto y clave, con comprobación de errores de escritura. No publica una sala en Internet, no atraviesa NAT y no es el código corto solicitado. 127.0.0.1 sirve únicamente en el mismo equipo. Entre equipos todavía hace falta red local, VPN o puerto TCP accesible. Para probar combates locales se usan runtimes y memories separados.
 
-## Implementación y diagnóstico
+## Servicio público previsto
 
-`rising_room.py` sirve el estado y autoriza cada operación en el equipo anfitrión. Cada miembro posee un token aleatorio; solo el anfitrión puede expulsar. Una clave aleatoria permite entrar, se rechazan nombres repetidos y existe límite de usuarios, mensajes y tamaño de peticiones.
+El objetivo es crear sala → recibir código corto → pegarlo en Join. Un servicio central BTC guardará miembros, permisos del anfitrión, chat y posteriormente el torneo. Cloudflare Workers con Durable Objects permite organizarlo; una dirección workers.dev evita necesitar dominio propio. Todavía no hay cuenta, servicio desplegado ni endpoint público configurado.
 
-`rising_room_bridge.py` mantiene las consultas en un hilo del Loader. `native/competitive_room.cpp` presenta ImGui dentro del juego y se comunica con su Loader mediante memoria compartida de nombre aleatorio por instancia. No realiza conexiones ni esperas de red en el hilo de renderizado. La sala no escribe en el estado de combate ni añade participantes al rollback.
+Las salas y el tráfico de las peleas son funciones distintas. Publicar un servicio HTTP por un túnel no sustituye automáticamente el transporte UDP del netplay. No se utiliza el matchmaking público del decomp como si admitiera salas de más de dos jugadores.
 
-`logs/rising-battle.log` registra creación, entradas, expulsiones, salidas y errores de servicio; no registra tokens, claves ni el texto del chat.
+Referencias oficiales:
+- https://developers.cloudflare.com/workers/configuration/routing/workers-dev/
+- https://developers.cloudflare.com/durable-objects/best-practices/websockets/
+- https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/protocols/
 
-Se ejecutan las pruebas de protocolo y del puente con `python -m unittest discover -s tests -v`. `tests/test_room_ui_native.cpp` es la comprobación adicional con ImGui y SDL3 reales: se compila con los cuatro archivos principales de ImGui del decomp revisado, SDL3 y headers Windows, y recibe el nombre del puente y un puerto de prueba libre. No crea una ventana visible. El objeto distribuido se regenera con `build_score.ps1`.
+## Desarrollo
+
+rising_room.py autoriza las operaciones. rising_room_bots.py ejecuta clientes de prueba. rising_invite.py codifica invitaciones. rising_room_bridge.py mantiene la red fuera del hilo de renderizado y comunica ImGui con su Loader mediante memoria compartida por instancia. No añade jugadores al rollback ni escribe el estado de combate.
+
+logs/rising-battle.log registra operaciones y errores sin tokens, claves ni texto del chat. Ejecuta python -m unittest discover -s tests -v. build_score.ps1 regenera el objeto nativo. tests/test_room_ui_native.cpp comprueba ImGui, SDL, Windows, la ruta original de Dragon Net Battle y los comandos del puente. --smoke-room comprueba servicio, bots e invitaciones desde el EXE congelado solo en loopback.
