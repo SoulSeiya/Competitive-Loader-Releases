@@ -28,7 +28,8 @@ class ExperimentalApp(CompetitiveApp):
                 update_labels(child)
         update_labels(root)
         self._append("Perfil nuevo: combate competitivo + red, chat y pausa oficiales.\n"
-                     "Chat: Tab. Tiempos oficiales; sin marcador ni bloqueo de ventana propios.\n"
+                     "Chat: Tab. Tiempos online: 180, 240, 360, 480 segundos y sin límite.\n"
+                     "Sin marcador ni bloqueo de ventana propios.\n"
                      "Solo decomp 0.1.35.2 revisado. Mantén el Loader abierto durante el online.\n"
                      "Ambos jugadores deben usar este mismo perfil y la misma memory.\n")
 
@@ -55,7 +56,7 @@ class ExperimentalApp(CompetitiveApp):
 
         def launch():
             exe = runtime / "Tenkaichi3Decomp.exe"
-            core.use_official_online_profile(exe, audio_fix=True)
+            core.use_official_online_profile(exe, audio_fix=True, competitive_times=True)
             if not (runtime / "gamedata" / ".competitive-v8.4.1.json").is_file():
                 raise core.LoaderError("Esta carpeta no tiene los datos competitivos preparados.")
             image = core.validate_payload(core.PAYLOAD, exe)

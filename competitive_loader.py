@@ -119,19 +119,20 @@ PATCH_SYMBOLS.update({target: symbol for hooks in CALL_WRAPPERS.values() for tar
 # The official lobby keeps these labels as one unique ASCII block. The native
 # payload changes the matching timer table; these same-size in-memory edits
 # make the four choices tell the player the real Competitive duration.
-ONLINE_TIME_LABEL_PATCHES = {
+COMPETITIVE_TIME_LABEL_PATCHES = {
     b"60 seconds\0": b"180 sec.\0\0\0",
     b"90 seconds\0": b"240 sec.\0\0\0",
     b"180 seconds\0": b"360 seconds\0",
     b"240 seconds\0": b"480 seconds\0",
 }
+ONLINE_TIME_LABEL_PATCHES = dict(COMPETITIVE_TIME_LABEL_PATCHES)
 
 
 class LoaderError(RuntimeError):
     pass
 
 
-def use_official_online_profile(exe_path: Path, audio_fix: bool = False) -> None:
+def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competitive_times: bool = False) -> None:
     """Opt-in laboratory profile, pinned to the locally reviewed Windows build.
 
     Keep competitive gameplay/model objects but do not inject the legacy native
@@ -144,13 +145,15 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False) -> None
     global PATCH_TARGETS, PATCH_OBJECTS, PATCH_SYMBOLS, ONLINE_TIME_LABEL_PATCHES
     PATCHES = {name: targets for name, targets in PATCHES.items() if name != "battle_hud_e_d.o"}
     CALL_WRAPPERS = {"competitive_audio.o": {"ADXT_StartAfs": "Competitive_AudioStartAfs"}} if audio_fix else {}
+    if competitive_times:
+        CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
     ENTRY_PATCH_TARGETS = {name for names in PATCHES.values() for name in names}
     CALL_WRAPPER_TARGETS = {name for hooks in CALL_WRAPPERS.values() for name in hooks}
     PATCH_TARGETS = ENTRY_PATCH_TARGETS | CALL_WRAPPER_TARGETS
     PATCH_OBJECTS = tuple(PATCHES) + tuple(CALL_WRAPPERS)
     PATCH_SYMBOLS = {name: name for name in ENTRY_PATCH_TARGETS}
     PATCH_SYMBOLS.update({target: symbol for hooks in CALL_WRAPPERS.values() for target, symbol in hooks.items()})
-    ONLINE_TIME_LABEL_PATCHES = {}
+    ONLINE_TIME_LABEL_PATCHES = dict(COMPETITIVE_TIME_LABEL_PATCHES) if competitive_times else {}
 
 
 def sha1_file(path: Path, chunk: int = 4 << 20) -> str:
