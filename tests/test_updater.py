@@ -23,6 +23,13 @@ class FakeResponse(io.BytesIO):
 
 
 class UpdaterTests(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        patch = mock.patch.object(loader, "GITHUB_RELEASE_CACHE", Path(folder.name) / "cache.json")
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def test_loader_release_channel_is_public_distribution_repo(self):
         self.assertEqual(
             loader.LOADER_RELEASE_API,

@@ -9,6 +9,13 @@ import competitive_loader as core
 
 
 class CompatibleDownloadTests(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        patch = mock.patch.object(core, "GITHUB_RELEASE_CACHE", Path(folder.name) / "cache.json")
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def test_release_profile_fetches_reviewed_tag_instead_of_latest(self):
         data = {"tag_name": core.SUPPORTED_DECOMP_TAG, "assets": [{
             "name": core.WINDOWS_ASSET_NAME, "id": 642111011,

@@ -1,3 +1,9 @@
+Competitive Loader 1.5.8 — actualizador tolerante a limites de GitHub.
+Corrige los errores HTTP 403/429 al buscar versiones mediante una consulta alternativa
+a las paginas publicas de Releases, manteniendo los hashes de descarga disponibles.
+Cache de cinco minutos y espera compartida entre consultas del decomp y del Loader.
+No requiere cuenta ni token de GitHub. Conserva el motor compatible 0.1.35.4.
+
 Competitive Loader 1.5.7 — candidato compatible con decomp 0.1.35.4.
 Descarga de la version oficial 0.1.35.4; se conservan sus fuentes y paneles nuevos.
 Revision de ABI y resolucion de los parches BTC en ambos ejecutables compatibles.

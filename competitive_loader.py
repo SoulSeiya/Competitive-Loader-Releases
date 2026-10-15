@@ -29,10 +29,12 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 7)
+APP_VERSION = (1, 5, 8)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Búsqueda de actualizaciones alternativa cuando GitHub limita su API.\n"
+    "• Caché de versiones durante cinco minutos y respeto del tiempo de espera de GitHub.\n"
     "• Compatible con Tenkaichi3Decomp 0.1.35.4 y 0.1.35.2.\n"
     "• Descarga automática de la 0.1.35.4, con sus mejoras visuales originales.\n"
     "• Comprobación de funciones, llamadas y etiquetas antes de iniciar el juego.\n"
@@ -55,6 +57,7 @@ APP_HEADER_LOGO = RESOURCE_ROOT / "assets" / "competitive_edition_logo.png"
 INTRO_CONVERTER = RESOURCE_ROOT / "tools" / "ffmpeg-lite.exe"
 DEFAULT_RUNTIME = HERE / "CompetitiveRuntime"
 CONFIG = HERE / "competitive_loader.json"
+GITHUB_RELEASE_CACHE = HERE / ".github-releases-cache.json"
 RELEASE_PROFILE = False
 REVIEWED_DECOMP_HASHES = {
     "a34fe8141d4190077e5bb8c874fb39280815535bb6b53f82e669daac1636b9b9": "v0.1.35.2",
@@ -251,10 +254,8 @@ def _release_version(tag: str) -> tuple[int, int, int] | None:
 
 def latest_loader_release_info() -> dict:
     """Return metadata for the latest published loader, even when it is current."""
-    request = urllib.request.Request(LOADER_RELEASE_API, headers=_github_headers())
     try:
-        with urllib.request.urlopen(request, timeout=12) as response:
-            release = json.loads(response.read().decode("utf-8"))
+        release = _github_release_metadata(LOADER_RELEASE_API)
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             raise LoaderError("No hay una Release del loader visible en GitHub.") from exc
@@ -1031,13 +1032,8 @@ def installation_release_info() -> dict:
 
 
 def _release_info(api_url: str) -> dict:
-    request = urllib.request.Request(
-        api_url,
-        headers=_github_headers(),
-    )
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
-            release = json.loads(response.read().decode("utf-8"))
+        release = _github_release_metadata(api_url)
     except (OSError, UnicodeError, ValueError, urllib.error.URLError) as exc:
         raise LoaderError(f"No se pudo consultar la versión más reciente en GitHub: {exc}") from exc
 
@@ -1054,6 +1050,18 @@ def _release_info(api_url: str) -> dict:
         "download_url": str(asset["browser_download_url"]),
         "size": int(asset.get("size") or 0),
     }
+
+
+def _github_release_metadata(api_url: str) -> dict:
+    from github_releases import release_metadata
+    prefix = "https://api.github.com/repos/"
+    if not api_url.startswith(prefix):
+        raise LoaderError("Origen de versiones no válido")
+    repo, separator, channel = api_url[len(prefix):].partition("/releases/")
+    if not separator or not (channel == "latest" or channel.startswith("tags/")):
+        raise LoaderError("Canal de versiones no válido")
+    tag = None if channel == "latest" else channel[len("tags/"):]
+    return release_metadata(repo, tag, GITHUB_RELEASE_CACHE, f"Competitive-Loader/{APP_VERSION_TEXT}")
 
 
 def _download_latest_release(temp: Path, release_info: dict | None = None) -> tuple[Path, str, dict]:

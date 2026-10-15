@@ -1,4 +1,6 @@
-Competitive Loader 1.5.7 — compatible con Tenkaichi3Decomp 0.1.35.4.
+Competitive Loader 1.5.8 — compatible con Tenkaichi3Decomp 0.1.35.4.
+Si GitHub limita su API, consulta las Releases publicas para comprobar versiones.
+Guarda los resultados durante cinco minutos y respeta la espera indicada por GitHub.
 Actualiza el motor oficial conservando las correcciones BTC de audio, efectos,
 tiempos, FT y marcador. Valida funciones y llamadas antes de iniciar el juego.
 Esta revision se centra en las partidas normales; el desarrollo de torneos queda pendiente.

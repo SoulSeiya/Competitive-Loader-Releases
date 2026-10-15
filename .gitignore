@@ -7,6 +7,8 @@ build_gui/work/
 CompetitiveRuntime/
 .competitive-update/
 competitive_loader.json
+.github-releases-cache.json
+.github-releases-cache.tmp
 loader-version-seen.json
 *.zip
 *.ps2
