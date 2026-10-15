@@ -29,10 +29,11 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 3, 1)
+APP_VERSION = (1, 3, 2)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Corrección de carga de modelos de efectos, incluido el fallo detectado al atacar con Androide 16.\n"
     "• FT1 a FT5 en la pestaña Host del menú online F1.\n"
     "• Ganador en grande y GG al completar el FT; cierre de la sesión para ambos.\n"
     "• Nombre del rival conectado en la selección de personajes.\n"
@@ -163,6 +164,7 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
     global PATCH_TARGETS, PATCH_OBJECTS, PATCH_SYMBOLS, ONLINE_TIME_LABEL_PATCHES
     PATCHES = {name: targets for name, targets in PATCHES.items() if name != "battle_hud_e_d.o"}
     CALL_WRAPPERS = {"competitive_audio.o": {"ADXT_StartAfs": "Competitive_AudioStartAfs"}} if audio_fix else {}
+    CALL_WRAPPERS["competitive_effect_model.o"] = {"BtlObj_Create": "Competitive_EffectModelCreate"}
     if competitive_times:
         CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
     if session_score:

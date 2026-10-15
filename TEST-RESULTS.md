@@ -76,3 +76,12 @@ Una prueba con dos procesos reales usó la petición nativa de sesión, rollback
 El ajuste FT de Host se añade a la fila identificada de la interfaz F1 del ejecutable revisado; se resuelven Combo y TextDisabledV con los headers de ImGui de esa misma versión. No se recompila ni sustituye el menú online completo. La conexión usa los bits 13–15 de las reglas nativas, preservados por los mensajes de configuración existentes. El perfil de búsqueda rápida no hereda el FT del Host. La fila de conexión se muestra en los menús 2D online para cubrir selección individual y por equipos.
 
 La prueba de integración de FT ejecuta el módulo de reglas y la fila Host con dobles del motor/UI: verifica la selección persistente, paso de argumentos variádicos y la limpieza del FT al entrar en Quick match (el menú ya había establecido las reglas antes de esa llamada). La revisión 1.3.1 contiene esta corrección para que el FT privado no se herede en búsqueda rápida.
+
+
+## Modelos embebidos 1.3.2 — candidato local
+
+La sesión reportada usaba Loader 1.3.1 y el decomp revisado; no observó conexión online. La dirección +0x33D16D corresponde a BtlObjMdl_BindFiles+0x1D, leyendo modelo+0x6C con modelo nulo; la cadena anterior incluye EftPropShot_InitProp y EftObj_Create. Se confirmó en el código que este último fija file[0].size=0x20 para un modelo embebido. Nuestro BObjFile_GetEntry y su copia integrada en BindTables usan ese campo para comprobar límites y rechazaban así entradas válidas.
+
+La nueva extensión envuelve BtlObj_Create, identifica únicamente el descriptor sintético de efecto, busca la asignación activa del heap y recupera un tamaño acotado (la longitud del pack cuando su tabla la describe, o el límite restante de la asignación). Valida la cabecera del modelo dentro de ese límite. Conserva el constructor original y el acceso comprobado a las tablas.
+
+Las 20 pruebas pasan. El nuevo caso nativo reproduce que un descriptor size=32 produce modelo vacío con el comprobador anterior, y que la corrección conserva el modelo válido sin extenderse fuera de su asignación. Comprueba recursos normales sin cambios, bloques liberados y descriptores truncados. Pasaron arranque de la GUI y resolución del payload empaquetado con la instalación reportada. Una demo real sin ventana alcanzó 600 blanks sin crash y terminó mediante parada controlada 0; no ejecutó el ataque específico y no valida todavía ese efecto en el juego. El candidato local queda preparado para repetir el ataque 1 de Androide 16.

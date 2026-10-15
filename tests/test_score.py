@@ -13,6 +13,9 @@ class ScoreTests(unittest.TestCase):
     def test_private_ft_rules_and_quick_queue_integration(self):
         self._native("test_ft_native.cpp", "FT integration OK")
 
+    def test_embedded_effect_model_extent(self):
+        self._native("test_effect_model_native.cpp", "Effect model OK")
+
     def _native(self, filename, expected):
         compiler = os.environ.get("CXX") or shutil.which("g++") or shutil.which("clang++") or shutil.which("cl")
         if not compiler:

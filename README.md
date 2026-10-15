@@ -53,3 +53,9 @@ Los objetos de `payload/` son los artefactos existentes usados por el parche. Su
 El objeto del marcador se regenera con `./build_score.ps1 -Compiler RUTA_CLANG_PLUS_PLUS -ImGuiInclude RUTA_DECOMP/port/third_party/imgui -SdlInclude RUTA_SDL/include`, usando los headers del decomp v0.1.35.2 revisado. `tests/test_score_native.cpp` comprueba confirmación, revanchas, rollback, empates y reinicio de sesión. GitHub Actions ejecuta esta prueba nativa además de las pruebas Python. Las pruebas locales finitas no garantizan ausencia de desync en Internet.
 
 La prueba adicional `tests/test_window_native.cpp` crea su propia ventana SDL oculta y comprueba la instalación/restauración del procedimiento de Windows, los comandos de movimiento/tamaño y F11. Compilar con C++ Windows x64, headers/biblioteca SDL3 y user32. `--release-profile` en el laboratorio usa la petición de sesión nativa desde un estado normal guardado; el perfil base conserva su arranque anterior para reproducir sus resultados.
+
+## Hotfix 1.3.2 en validación
+
+La traza del ataque 1 de Androide 16 llega a EftObj_Create → BtlObj_Create → BtlObjMdl_BindFiles, leyendo modelo nulo+0x6C. EftObj_Create usa size=0x20 para un modelo embebido; el comprobador competitivo trataba ese valor fijo como longitud del archivo y devolvía una entrada vacía. La nueva extensión recupera un límite de lectura dentro de la asignación activa que contiene el modelo antes de delegar al constructor original. No sustituye la entrada vacía por un efecto arbitrario ni desactiva los límites de los archivos normales.
+
+Se regenera con `./build_effect_model.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. La prueba nativa `tests/test_effect_model_native.cpp` reproduce el modelo vacío y verifica el tamaño recuperado, datos truncados, memoria liberada y recursos ordinarios. Pendiente de repetir el ataque específico en el juego antes de etiquetar la Release.
