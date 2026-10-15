@@ -3,7 +3,7 @@ Código y publicaciones de Competitive Loader.
 
 El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
 
-## Release 1.3.1
+## Release 1.3.2
 
 En F1 → Online → Host se puede elegir Sin FT o FT1–FT5 antes de conectar. El anfitrión transmite el objetivo a ambos jugadores con las reglas de la sesión privada. Gana quien alcanza esas victorias confirmadas; los empates no avanzan el FT. Al finalizar, el marcador se detiene, aparece GG con el ganador y se cierra el online de ambos. Ambos necesitan este Loader. La búsqueda rápida mantiene sus reglas.
 
@@ -54,8 +54,8 @@ El objeto del marcador se regenera con `./build_score.ps1 -Compiler RUTA_CLANG_P
 
 La prueba adicional `tests/test_window_native.cpp` crea su propia ventana SDL oculta y comprueba la instalación/restauración del procedimiento de Windows, los comandos de movimiento/tamaño y F11. Compilar con C++ Windows x64, headers/biblioteca SDL3 y user32. `--release-profile` en el laboratorio usa la petición de sesión nativa desde un estado normal guardado; el perfil base conserva su arranque anterior para reproducir sus resultados.
 
-## Hotfix 1.3.2 en validación
+## Hotfix 1.3.2
 
 La traza del ataque 1 de Androide 16 llega a EftObj_Create → BtlObj_Create → BtlObjMdl_BindFiles, leyendo modelo nulo+0x6C. EftObj_Create usa size=0x20 para un modelo embebido; el comprobador competitivo trataba ese valor fijo como longitud del archivo y devolvía una entrada vacía. La nueva extensión recupera un límite de lectura dentro de la asignación activa que contiene el modelo antes de delegar al constructor original. No sustituye la entrada vacía por un efecto arbitrario ni desactiva los límites de los archivos normales.
 
-Se regenera con `./build_effect_model.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. La prueba nativa `tests/test_effect_model_native.cpp` reproduce el modelo vacío y verifica el tamaño recuperado, datos truncados, memoria liberada y recursos ordinarios. Pendiente de repetir el ataque específico en el juego antes de etiquetar la Release.
+Se regenera con `./build_effect_model.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. La prueba nativa `tests/test_effect_model_native.cpp` reproduce el modelo vacío y verifica el tamaño recuperado, datos truncados, memoria liberada y recursos ordinarios. El 15 de octubre de 2026 el usuario repitió el ataque 1 de Androide 16 con el Loader 1.3.2 y confirmó que funcionó sin el cierre reportado.

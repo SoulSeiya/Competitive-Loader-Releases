@@ -1,11 +1,11 @@
 # Competitive Loader 1.3.2
 
-- Corrige el descriptor de los modelos embebidos de efectos: el tamaño fijo 32 que usa el decomp ya no se confunde con la longitud del archivo. Se recupera un límite dentro de la asignación activa de memoria antes de llamar al constructor original. La traza reportada del ataque 1 de Androide 16 fallaba en esta ruta al quedar vacío el puntero del modelo.
+- Corrige el descriptor de los modelos embebidos de efectos: el tamaño fijo 32 que usa el decomp ya no se confunde con la longitud del archivo. Se recupera un límite dentro de la asignación activa de memoria antes de llamar al constructor original. La traza reportada del ataque 1 de Androide 16 fallaba en esta ruta al quedar vacío el puntero del modelo. El usuario repitió el ataque con esta versión y confirmó que funcionó sin el cierre reportado.
 - **FT1 a FT5** en F1 → Online → Host → Primero a (FT). El anfitrión lo elige antes de conectar y ambos reciben el mismo objetivo. Sin FT conserva las partidas libres. La búsqueda rápida no usa este FT privado.
 - El primero en alcanzar las victorias elegidas gana el set. Los empates no suman victorias. El marcador se congela, muestra **GG y el ganador en grande** durante unos segundos y termina la sesión online de ambos mediante la salida nativa.
 - La selección de personajes muestra el nombre del rival conectado.
 - Botón **Buscar actualizaciones** en el Loader: vuelve a consultar GitHub sin reiniciar. Instalar una actualización sigue reiniciando únicamente el Loader.
-- Para compartir el FT, ambos jugadores deben usar Loader 1.3.1 con las mismas reglas y datos.
+- Para compartir el FT, ambos jugadores deben usar Loader 1.3.2 con las mismas reglas y datos.
 - La ventana bloquea arrastre, redimensionado, menú de sistema y F11 durante el online. Al terminar la sesión recupera su comportamiento normal; cerrar el juego sigue disponible.
 - Aviso con las mejoras de la versión al abrirla por primera vez, también después de actualizar. El registro del Loader muestra las notas de GitHub al iniciar una actualización.
 - Corrección de la inicialización en cero de los parches nativos.
