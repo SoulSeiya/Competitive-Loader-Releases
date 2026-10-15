@@ -36,8 +36,8 @@ class UpdaterTests(unittest.TestCase):
 
     def test_new_release_is_selected(self):
         release = {
-            "tag_name": "v1.3.0",
-            "name": "Competitive Loader 1.3",
+            "tag_name": "v1.4.0",
+            "name": "Competitive Loader 1.4",
             "body": "Cambios de prueba",
             "assets": [{
                 "name": loader.LOADER_ASSET_NAME,
@@ -49,7 +49,7 @@ class UpdaterTests(unittest.TestCase):
         response = FakeResponse(json.dumps(release).encode("utf-8"))
         with mock.patch("urllib.request.urlopen", return_value=response):
             update = loader.latest_loader_update()
-        self.assertEqual(update["tag"], "v1.3.0")
+        self.assertEqual(update["tag"], "v1.4.0")
         self.assertEqual(update["size"], 123)
 
     def test_current_release_is_ignored(self):
@@ -77,7 +77,7 @@ class UpdaterTests(unittest.TestCase):
                 mock.patch.object(sys, "frozen", True, create=True),
             ):
                 staged = loader.stage_loader_update({
-                    "tag": "v1.3.0", "download_url": "https://example.invalid/update.zip",
+                    "tag": "v1.4.0", "download_url": "https://example.invalid/update.zip",
                     "size": package.stat().st_size, "digest": "",
                 })
                 self.assertEqual(staged.read_bytes()[:2], b"MZ")

@@ -47,6 +47,7 @@ class CompetitiveApp:
         self.events: queue.Queue = queue.Queue()
         self.busy = False
         self.pending_update: dict | None = None
+        self.checking_versions = False
         root.title(core.APP_NAME)
         root.geometry("1080x850")
         root.minsize(980, 800)
@@ -207,6 +208,11 @@ class CompetitiveApp:
         )
         self.update_button.pack(fill="x", padx=15, pady=(8, 12))
         self.update_button.configure(state="disabled", disabledforeground=self.GREEN)
+        self.check_updates_button = self._button(
+            loader_card, "BUSCAR ACTUALIZACIONES", self._check_versions,
+            self.PANEL_DARK, "#172a42", font=("Segoe UI Semibold", 8), pady=5,
+        )
+        self.check_updates_button.pack(fill="x", padx=15, pady=(0, 10))
 
         actions = tk.Frame(main, bg=self.BG)
         actions.pack(fill="x", pady=(14, 0))
@@ -357,6 +363,8 @@ class CompetitiveApp:
                     self._append(f"ERROR: {event[1]}\n")
                     messagebox.showerror(core.APP_NAME, event[1], parent=self.root)
                 elif event[0] == "version_status":
+                    self.checking_versions = False
+                    self.check_updates_button.configure(text="BUSCAR ACTUALIZACIONES", state="normal")
                     versions, errors = event[1], event[2]
                     self.decomp_remote_label.configure(text=versions["decomp_remote"])
                     self.decomp_installed_label.configure(text=versions["decomp_installed"])
@@ -421,6 +429,10 @@ class CompetitiveApp:
         self.root.after(100, self._poll)
 
     def _check_versions(self):
+        if self.checking_versions:
+            return
+        self.checking_versions = True
+        self.check_updates_button.configure(text="COMPROBANDO...", state="disabled")
         def worker():
             config = core.load_config()
             runtime = self._runtime()

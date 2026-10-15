@@ -3,7 +3,11 @@ Código y publicaciones de Competitive Loader.
 
 El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
 
-## Release 1.2.0
+## Release 1.3.0
+
+En F1 → Online → Host se puede elegir Sin FT o FT1–FT5 antes de conectar. El anfitrión transmite el objetivo a ambos jugadores con las reglas de la sesión privada. Gana quien alcanza esas victorias confirmadas; los empates no avanzan el FT. Al finalizar, el marcador se detiene, aparece GG con el ganador y se cierra el online de ambos. Ambos necesitan este Loader. La búsqueda rápida mantiene sus reglas.
+
+La selección de personajes muestra el rival conectado. El botón Buscar actualizaciones permite consultar de nuevo las versiones de GitHub sin cerrar la aplicación; instalar una actualización sí reinicia el Loader.
 
 El paquete publicable se construye con `build.ps1` y abre `competitive_release_gui.py`. Consulta las publicaciones del decomp al jugar y valida su compatibilidad antes de instalarlas. La primera versión admite el ejecutable revisado de v0.1.35.2: una publicación futura sin revisar no reemplaza la instalación actual.
 

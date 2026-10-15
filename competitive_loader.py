@@ -29,15 +29,15 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 2, 0)
+APP_VERSION = (1, 3, 0)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
-    "• Marcador online con victorias y empates, conservado entre peleas y revanchas.\n"
-    "• Bloqueo de movimiento, tamaño y F11 durante el online para evitar interrupciones.\n"
-    "• Resultados confirmados por la red, sin duplicar victorias durante rollback.\n"
-    "• Corrección al inicializar la memoria de los parches.\n"
-    "• Aviso con las mejoras al abrir una nueva versión del Loader."
+    "• FT1 a FT5 en la pestaña Host del menú online F1.\n"
+    "• Ganador en grande y GG al completar el FT; cierre de la sesión para ambos.\n"
+    "• Nombre del rival conectado en la selección de personajes.\n"
+    "• Botón Buscar actualizaciones sin reiniciar el Loader.\n"
+    "• Conserva el marcador, bloqueo de ventana y registros de diagnóstico."
 )
 COMPETITIVE_SLUS_SHA1 = "28992f0d472bbb6b67cc193bb7d79b8a78bd7feb"
 DBZP_SHA1 = "4f910969e05d9b25c83af7642b60da9949a4348b"
@@ -168,6 +168,9 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
     if session_score:
         CALL_WRAPPERS["competitive_score.o"] = {
             "Ui_Event": "Competitive_WindowEvent",
+            "Port_NetRulesSet": "Competitive_FtRulesSet",
+            "Port_LobbyStartQuick": "Competitive_FtQuickStart",
+            "_ZN5ImGui12TextDisabledEPKcz": "Competitive_FtHostRow",
             "Port_NetBeginTick": "Competitive_ScoreBeginTick",
             "Port_NetSessionBegin": "Competitive_ScoreSessionBegin",
             "Port_NetSessionEnd": "Competitive_ScoreSessionEnd",
