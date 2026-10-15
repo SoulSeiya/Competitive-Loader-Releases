@@ -1,5 +1,6 @@
 param(
-    [string]$Python = "python"
+    [string]$Python = "python",
+    [switch]$SkipDependencyInstall
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,8 +12,10 @@ $Release = Join-Path $Project "release"
 $Archive = Join-Path $Release "CompetitiveLoader-windows-x64.zip"
 $Package = Join-Path $Release ("package-" + [Guid]::NewGuid().ToString("N"))
 
-& $Python -m pip install -r (Join-Path $Project "requirements-build.txt")
-if ($LASTEXITCODE -ne 0) { throw "No se pudieron instalar las herramientas de compilación." }
+if (-not $SkipDependencyInstall) {
+    & $Python -m pip install -r (Join-Path $Project "requirements-build.txt")
+    if ($LASTEXITCODE -ne 0) { throw "No se pudieron instalar las herramientas de compilación." }
+}
 
 & $Python -m PyInstaller --noconfirm --clean --distpath $Dist --workpath $Work $Spec
 if ($LASTEXITCODE -ne 0) { throw "No se pudo construir Competitive Loader.exe." }

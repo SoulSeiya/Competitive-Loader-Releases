@@ -3,6 +3,14 @@ Código y publicaciones de Competitive Loader.
 
 El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
 
+## Release 1.1.0
+
+El paquete publicable se construye con `build.ps1` y abre `competitive_release_gui.py`. Consulta las publicaciones del decomp al jugar y valida su compatibilidad antes de instalarlas. La primera versión admite el ejecutable revisado de v0.1.35.2: una publicación futura sin revisar no reemplaza la instalación actual.
+
+Cada arranque/operación guarda una carpeta en `logs/` con `local.log`, `online.log` y `session.json`; un arranque correcto añade `patch.log`. Se captura el código de salida y el informe nativo de crash si aparece. Los logs rotan al alcanzar 10 MB (tres respaldos por archivo), permanecen en el equipo y se abren desde el botón de la interfaz. Detalles de esta versión: [RELEASE-NOTES.md](RELEASE-NOTES.md).
+
+GitHub Actions comprueba y empaqueta `main`. Una etiqueta `vX.Y.Z` que coincida con la versión del código publica el ZIP en Releases. Las ISO, memory y configuraciones personales no se incluyen en ese paquete.
+
 ## Pruebas online con decomp 0.1.35.2
 
 Para jugar manualmente con el perfil nuevo, abre `bin/Competitive Loader Experimental.exe` y pulsa **Jugar Competitive · Experimental**. Usa una instalación competitiva ya preparada con el decomp 0.1.35.2 revisado. Si no encuentra una, permite seleccionar su carpeta. Conserva la importación de memory y fija la versión del decomp; no descarga actualizaciones. El chat se abre con Tab. El menú online y el reloj real usan 180, 240, 360 y 480 segundos, más sin límite; ambos jugadores necesitan esta misma versión. Los tiempos offline originales se restauran antes de cargar una pelea offline.

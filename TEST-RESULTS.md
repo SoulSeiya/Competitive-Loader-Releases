@@ -41,3 +41,9 @@ Las pruebas nativas verificaron EOF mono/estéreo, alineación de cabeceras, fal
 ## Tiempos competitivos del menú online
 
 La interfaz gráfica activa competitive_times.o: cambia los valores reales 60/90/180/240 por 180/240/360/480 antes del cargador oficial de batalla, únicamente en sesión online. Al cargar offline restaura los valores originales. No cambia el índice que transmite la red ni la opción sin límite. Se restauraron también las cuatro etiquetas del menú online. Las pruebas nativas comprobaron los cuatro valores antes de Battle_Load, cargas repetidas, restauración offline y conservación del resto de entradas. Se verificaron la resolución completa del payload y una sola aparición de cada etiqueta en el ejecutable fijado. La prueba online original conserva su perfil sin estos cambios; no se certifica todavía el temporizador en una sesión real de dos jugadores con esta revisión.
+
+## Release 1.1.0 y diagnósticos
+
+Se añadió una prueba de descarga completa simulada (ZIP, extracción y validación) con un decomp desconocido: la instalación previa conservó su ejecutable y no se llamó a la sustitución transaccional. Otras pruebas verifican separación de mensajes de red/locales, detección del mensaje nativo de desync y copia exclusiva de un informe de crash nuevo.
+
+En una prueba de arranque real se aplicaron 17 entradas competitivas, dos wrappers y 67 ramas directas. El proceso permaneció abierto ocho segundos y se cerró de forma controlada para verificar el monitor. Se guardaron local.log (13.772 bytes), online.log (2.341 bytes), patch.log y session.json con status closed y exit_code 0x00000000. Esta prueba confirma captura real y seguimiento de salida; no es una prueba de crash real ni una nueva partida online prolongada.

@@ -5,7 +5,7 @@ from pathlib import Path
 PROJECT = Path(SPECPATH).parent
 
 a = Analysis(
-    [str(PROJECT / 'competitive_gui.py')],
+    [str(PROJECT / 'competitive_release_gui.py')],
     pathex=[str(PROJECT)],
     binaries=[],
     datas=[

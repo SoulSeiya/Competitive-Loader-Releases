@@ -29,7 +29,7 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 0, 8)
+APP_VERSION = (1, 1, 0)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 COMPETITIVE_SLUS_SHA1 = "28992f0d472bbb6b67cc193bb7d79b8a78bd7feb"
@@ -47,6 +47,10 @@ APP_HEADER_LOGO = RESOURCE_ROOT / "assets" / "competitive_edition_logo.png"
 INTRO_CONVERTER = RESOURCE_ROOT / "tools" / "ffmpeg-lite.exe"
 DEFAULT_RUNTIME = HERE / "CompetitiveRuntime"
 CONFIG = HERE / "competitive_loader.json"
+RELEASE_PROFILE = False
+REVIEWED_DECOMP_HASHES = {
+    "a34fe8141d4190077e5bb8c874fb39280815535bb6b53f82e669daac1636b9b9": "v0.1.35.2",
+}
 SAVE_NAME = "BASLUS-21678DBZT3"
 SAVE_FILE_SIZES = {
     SAVE_NAME: 0x4000,
@@ -132,15 +136,22 @@ class LoaderError(RuntimeError):
     pass
 
 
+class IncompatibleDecompError(LoaderError):
+    pass
+
+
 def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competitive_times: bool = False) -> None:
     """Opt-in laboratory profile, pinned to the locally reviewed Windows build.
 
     Keep competitive gameplay/model objects but do not inject the legacy native
     online/audio extensions. Call before creating any PayloadImage.
     """
-    expected = "a34fe8141d4190077e5bb8c874fb39280815535bb6b53f82e669daac1636b9b9"
-    if sha256_file(exe_path) != expected:
-        raise LoaderError("El perfil de laboratorio requiere el ejecutable revisado de 0.1.35.2.")
+    actual = sha256_file(exe_path)
+    if actual not in REVIEWED_DECOMP_HASHES:
+        raise IncompatibleDecompError(
+            "El decomp no está revisado para este Loader; se conserva la instalación anterior. "
+            f"Actualiza Competitive Loader para admitirlo. SHA-256: {actual}"
+        )
     global PATCHES, CALL_WRAPPERS, ENTRY_PATCH_TARGETS, CALL_WRAPPER_TARGETS
     global PATCH_TARGETS, PATCH_OBJECTS, PATCH_SYMBOLS, ONLINE_TIME_LABEL_PATCHES
     PATCHES = {name: targets for name, targets in PATCHES.items() if name != "battle_hud_e_d.o"}
@@ -1441,6 +1452,8 @@ class PayloadImage:
 
 
 def validate_payload(payload_dir: Path, exe_path: Path) -> PayloadImage:
+    if RELEASE_PROFILE:
+        use_official_online_profile(exe_path, audio_fix=True, competitive_times=True)
     missing = [name for name in PATCH_OBJECTS if not (payload_dir / name).is_file()]
     if missing:
         raise LoaderError("Faltan archivos del payload: " + ", ".join(missing))
@@ -1515,6 +1528,7 @@ def launch_patched(
     log_name: str = "competitive_loader.log",
     game_log: Path | None = None,
     convert_intro: bool = True,
+    game_output_fd: int | None = None,
 ):
     launch_env = dict(env or {})
     online_hash = ""
@@ -1569,9 +1583,12 @@ def launch_patched(
     si.cb = ctypes.sizeof(si)
     pi = PROCESS_INFORMATION()
     log_stream = input_stream = None
-    if game_log is not None:
+    if game_log is not None and game_output_fd is not None:
+        raise LoaderError("El registro del juego debe usar un solo destino.")
+    capture_output = game_log is not None or game_output_fd is not None
+    if capture_output:
         import msvcrt
-        log_stream = game_log.open("wb")
+        log_stream = game_log.open("wb") if game_log is not None else os.fdopen(os.dup(game_output_fd), "wb", buffering=0)
         input_stream = open(os.devnull, "rb")
         si.dwFlags |= 0x00000100  # STARTF_USESTDHANDLES
         si.hStdOutput = si.hStdError = msvcrt.get_osfhandle(log_stream.fileno())
@@ -1583,7 +1600,7 @@ def launch_patched(
     creation_flags = 0x00000004 | (0x00000400 if environment is not None else 0)
     try:
         created = kernel32.CreateProcessW(
-            str(exe_path), command, None, None, game_log is not None, creation_flags,
+            str(exe_path), command, None, None, capture_output, creation_flags,
             ctypes.cast(environment, ctypes.c_void_p) if environment is not None else None,
             str(exe_path.parent), ctypes.byref(si), ctypes.byref(pi),
         )

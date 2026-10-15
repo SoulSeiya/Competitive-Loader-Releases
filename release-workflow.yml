@@ -1,55 +1,53 @@
 name: Publicar Competitive Loader
-
 on:
   push:
-    tags:
-      - "v*"
-
+    tags: ['v*']
+    branches: ['main']
+  workflow_dispatch:
 permissions:
   contents: write
-
 jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - name: Descargar el repositorio
-        uses: actions/checkout@v4
-
-      - name: Preparar Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
           cache: pip
-          cache-dependency-path: CompetitiveLoader/requirements-build.txt
-
-      - name: Comprobar la versión de la etiqueta
+          cache-dependency-path: requirements-build.txt
+      - name: Verificar versión y pruebas
         shell: pwsh
         run: |
-          $version = python -c "import sys; sys.path.insert(0, 'CompetitiveLoader'); import competitive_loader as app; print(app.APP_VERSION_TEXT)"
-          if ("v$version" -ne "${{ github.ref_name }}") {
-            throw "La etiqueta ${{ github.ref_name }} no coincide con la versión v$version del código."
+          python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas' }
+          $version = python -c "import competitive_loader as c; print(c.APP_VERSION_TEXT)"
+          if ('${{ github.ref_type }}' -eq 'tag' -and "v$version" -ne '${{ github.ref_name }}') {
+            throw 'La etiqueta y la versión del código difieren'
           }
-
-      - name: Construir el paquete de Windows
+      - name: Construir paquete
         shell: pwsh
-        run: .\CompetitiveLoader\build.ps1 -Python python
-
-      - name: Guardar el paquete del trabajo
-        uses: actions/upload-artifact@v4
+        run: ./build.ps1 -Python python
+      - name: Comprobar EXE
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath '.\dist\Competitive Loader.exe' -ArgumentList '--smoke-test' -WindowStyle Hidden -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Falló la apertura del EXE' }
+          python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas del paquete' }
+      - uses: actions/upload-artifact@v4
         with:
           name: CompetitiveLoader-windows-x64
-          path: CompetitiveLoader/release/CompetitiveLoader-windows-x64.zip
-          if-no-files-found: error
-
-      - name: Crear la Release de GitHub
+          path: release/CompetitiveLoader-windows-x64.zip
+      - name: Publicar Release
+        if: github.ref_type == 'tag'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "${{ github.ref_name }}" *> $null
+          gh release view '${{ github.ref_name }}' *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload "${{ github.ref_name }}" "CompetitiveLoader/release/CompetitiveLoader-windows-x64.zip" --clobber
+            gh release upload '${{ github.ref_name }}' release/CompetitiveLoader-windows-x64.zip --clobber
           } else {
-            gh release create "${{ github.ref_name }}" "CompetitiveLoader/release/CompetitiveLoader-windows-x64.zip" --generate-notes --title "Competitive Loader ${{ github.ref_name }}"
+            gh release create '${{ github.ref_name }}' release/CompetitiveLoader-windows-x64.zip --title 'Competitive Loader ${{ github.ref_name }}' --notes-file RELEASE-NOTES.md
           }
-
