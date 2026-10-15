@@ -155,7 +155,8 @@ def run(args):
     children = []
     try:
         for side in ("host", "guest"):
-            command = [sys.executable, str(Path(__file__).resolve()), "run", "--lab", str(root),
+            launcher = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, str(Path(__file__).resolve())]
+            command = launcher + ["run", "--lab", str(root),
                        "--worker", side, "--port", str(args.port), "--seconds", str(args.seconds),
                        "--rollback", str(args.rollback), "--lag", str(args.lag), "--loss", str(args.loss),
                        "--slow-start", str(args.slow_start)]

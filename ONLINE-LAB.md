@@ -11,6 +11,10 @@ La ISO 8.4.2 proporcionada localmente tiene las mismas firmas SLUS/DBZP aceptada
 
 ## Preparación
 
+El ejecutable `bin/Competitive Online Lab.exe` permite usar los mismos comandos sin Python. Es una herramienta de consola experimental; no es la interfaz gráfica del Loader habitual. Ejemplo: `& '.\bin\Competitive Online Lab.exe' analyze --lab RUTA_PRUEBA`.
+
+Para construirlo desde el código, instala `requirements-build.txt` y ejecuta `./build_lab.ps1`; el resultado queda en `dist/Competitive Online Lab.exe`.
+
 Con Python 3 en Windows (el Python incluido en toolchain/msys64/ucrt64/bin también sirve):
 
 ```powershell
