@@ -8,10 +8,16 @@ import unittest
 
 class ScoreTests(unittest.TestCase):
     def test_confirmed_results_survive_rematches_and_rollback(self):
+        self._native("test_score_native.cpp", "Score OK")
+
+    def test_private_ft_rules_and_quick_queue_integration(self):
+        self._native("test_ft_native.cpp", "FT integration OK")
+
+    def _native(self, filename, expected):
         compiler = os.environ.get("CXX") or shutil.which("g++") or shutil.which("clang++") or shutil.which("cl")
         if not compiler:
             self.skipTest("Se necesita un compilador C++ para comprobar el contador nativo")
-        source = Path(__file__).with_name("test_score_native.cpp").resolve()
+        source = Path(__file__).with_name(filename).resolve()
         with tempfile.TemporaryDirectory() as directory:
             executable = Path(directory) / "score-test.exe"
             if Path(compiler).stem.lower() == "cl":
@@ -22,4 +28,4 @@ class ScoreTests(unittest.TestCase):
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
             tested = subprocess.run([str(executable)], capture_output=True, text=True)
             self.assertEqual(tested.returncode, 0, tested.stdout + tested.stderr)
-            self.assertIn("Score OK", tested.stdout)
+            self.assertIn(expected, tested.stdout)

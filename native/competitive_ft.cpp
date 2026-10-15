@@ -27,6 +27,9 @@ extern "C" void Competitive_FtRulesSet(int type, int dp, int time) {
 }
 
 extern "C" int Competitive_FtQuickStart(int queue) {
+    // The UI sets rules BEFORE starting the queue. Clear that private FT too,
+    // rather than only suppressing rule changes inside the native call.
+    sRules = CompetitiveFtRules(sRules, 0);
     quickRules = true;
     const int result = Port_LobbyStartQuick(queue);
     quickRules = false;

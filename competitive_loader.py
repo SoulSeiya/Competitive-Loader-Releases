@@ -29,7 +29,7 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 3, 0)
+APP_VERSION = (1, 3, 1)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
