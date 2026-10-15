@@ -1,3 +1,8 @@
+Competitive Loader 1.5.2: matchmaking propio activo en Cloudflare.
+Worker predeterminado: https://btc-matchmaking.paulogomez41.workers.dev
+Sala publica del torneo y relay TURN pendientes.
+
+
 # Competitive Loader 1.5.1 — candidato local
 
 - Torneos BTC dentro de Dragon Net Battle, conservando las partidas directas.

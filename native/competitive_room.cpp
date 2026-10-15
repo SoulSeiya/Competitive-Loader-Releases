@@ -121,6 +121,8 @@ extern "C" bool Competitive_RisingBegin(const char *name, bool *open, ImGuiWindo
         ImGui::Separator();
     }
     if (visible && name && strcmp(name, "Dragon Net Battle") == 0) {
+        if(SDL_getenv("BTC_MATCH_UNCONFIGURED"))
+            ImGui::TextWrapped("Matchmaking BTC pendiente: configura nuestro Worker en el Loader. Los codigos de pelea no conectan sin ese servicio. Offline y conexion por IP siguen disponibles.");
         risingRead();
         const bool tournamentRunning = risingState.connected && risingState.tournament.status == 1;
         if(tournamentRunning) risingSelectTournament=true;

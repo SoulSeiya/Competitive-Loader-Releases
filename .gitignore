@@ -23,4 +23,7 @@ test-process.json
 Competitive Online Lab.spec
 competitive_experimental.json
 logs/
+service/cloudflare-matchmaking/upstream/
+service/cloudflare-matchmaking/.wrangler/
+service/cloudflare-matchmaking/wrangler.toml
 

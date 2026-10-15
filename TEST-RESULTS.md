@@ -135,3 +135,17 @@ Una instancia propia del juego revisado pasó una prueba instrumentada: pestaña
 El alojamiento HTTPS público, pruebas entre equipos y el espectador online por replay siguen pendientes. El servicio conserva estado solo en memoria; al reiniciarlo se pierden sus salas.
 
 El EXE congelado 1.5.1 pasó --smoke-test, --smoke-room, --smoke-service y --smoke-runtime con salida cero. --smoke-service usa los módulos empaquetados para crear una sala por código y conectar cuatro miembros en loopback. El candidato local preparado conserva un runtime humano separado; la prueba manual de tres sets y revisión visual sigue pendiente.
+
+## Matchmaking propio 1.5.2 — Worker desplegado
+
+El Loader fija BT3_MATCH_URL en todos los procesos de Release, incluidos los bots. Por defecto usa https://btc-matchmaking.paulogomez41.workers.dev; un endpoint propio válido se conserva. Guardar el campo vacío desactiva explícitamente los códigos mediante loopback y muestra el aviso. No hay fallback al dominio del decomp. El diálogo conserva el resto de la configuración y no cambia procesos ya iniciados.
+
+Pasan 54 pruebas Python. Los nuevos casos cubren la URL propia predeterminada, loopback, desactivación explícita, rechazo del dominio oficial, HTTP remoto, credenciales/rutas/parámetros y preservación de preferencias. Las 95 comprobaciones upstream del Worker fijado en 5b0ad7ed1513fd99de6d4bdd2719c917acbf672e pasan sin red, con un adaptador ESM para Windows. Fuente, esquema y licencia MIT originales se descargan con manifiesto de hashes en una carpeta excluida de Git. La fixture nativa con ImGui/SDL comprueba también el bloqueo del enlace automático cuando se desactivan los códigos.
+
+El Worker btc-matchmaking está desplegado en la cuenta del usuario con D1 btc-matchmaking-rooms vinculada como DB y las tablas rooms/used creadas. MIN_RELEASE y LATEST_RELEASE valen 135. La prueba HTTPS creó un código, conectó otro cliente, comprobó los peers recíprocos y retiró la sala de prueba. No se configuraron BUILD_KEYS, TURN ni planes de pago.
+
+Dos bots del juego real conectaron mediante el Worker propio y ambos logs confirmaron esa URL. Se observaron unos 535 checks confirmados durante el ensayo finito; no terminó un FT. Evidencia privada local: logs/tournament-lab/81649658e74f489b9d935ebc22c1990d. Esto verifica el enlace de dos instancias, no una pelea completa entre redes distintas ni NAT restrictivo.
+
+Una comprobación adicional del ejecutable revisado con BT3_SIGN_TEST=post recibió /v1/hello en loopback y terminó con código cero. Registro privado: online-tests/score-001/host/btc-matchmaking-url-smoke.log. La sala pública de torneo y el espectador remoto por replay siguen pendientes; el nuevo Worker solo enlaza combates 1 vs 1.
+
+El paquete final 1.5.2 pasó --smoke-test, --smoke-room, --smoke-service y --smoke-runtime con salida cero tras reconstruirse con la URL pública predeterminada. Se copió el mismo EXE a bin y al candidato local Competitive-Rising-Battle-1.5.2. La secuencia manual del humano contra tres bots y la revisión visual siguen pendientes.

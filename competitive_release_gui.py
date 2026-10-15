@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import sys
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 
 import competitive_loader as core
 from competitive_gui import CompetitiveApp
@@ -32,6 +32,8 @@ class ReleaseApp(CompetitiveApp):
         refresh(root)
         tk.Button(root, text="Abrir registros locales y online", command=self.open_logs,
                   bg=self.PANEL, fg=self.TEXT).pack(side="bottom", fill="x")
+        tk.Button(root,text="Configurar matchmaking BTC (Worker)",command=self.configure_matchmaking,
+                  bg=self.PANEL,fg=self.TEXT).pack(side="bottom",fill="x")
         self._append("Perfil competitivo: intro y audio corregidos; chat y pausa oficiales.\n"
                      "Marcador online persistente entre peleas y revanchas.\n"
                      "Las actualizaciones del decomp se validan antes de instalarlas.\n"
@@ -62,6 +64,24 @@ class ReleaseApp(CompetitiveApp):
     def open_logs(self):
         LOGS.mkdir(parents=True, exist_ok=True)
         os.startfile(self.session.path if self.session else LOGS)
+
+    def configure_matchmaking(self):
+        if self.busy or (self.session and self.session.running):
+            messagebox.showinfo(core.APP_NAME,"Cierra el juego para cambiar el servidor de las próximas sesiones.",parent=self.root)
+            return
+        config=core.load_config()
+        from btc_matchmaking import DEFAULT_MATCHMAKING
+        value=simpledialog.askstring("Matchmaking BTC","URL de nuestro Worker de peleas (https://…).\nNo es la URL del servicio de salas/torneos.\nVacío: códigos desactivados hasta configurar el Worker.",
+                                     initialvalue=config.get("btc_matchmaking_url",DEFAULT_MATCHMAKING),parent=self.root)
+        if value is None:return
+        from btc_matchmaking import validate_url
+        try:value=validate_url(value)
+        except ValueError as exc:
+            messagebox.showerror(core.APP_NAME,str(exc),parent=self.root);return
+        config["btc_matchmaking_url"]=value
+        core.save_config(config)
+        self._append("Matchmaking BTC configurado para el próximo inicio.\n" if value else
+                     "Sin Worker BTC: códigos de pelea pendientes; offline e IP siguen disponibles.\n")
 
     def _append(self, text):
         super()._append(text)

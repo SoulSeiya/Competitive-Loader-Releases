@@ -29,10 +29,12 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 1)
+APP_VERSION = (1, 5, 2)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Matchmaking BTC propio por defecto en Cloudflare; la app ya no recurre al servidor oficial del decomp.\n"
+    "• Puedes cambiar el Worker desde el Loader. La sala de torneo pública y el relay siguen pendientes.\n"
     "• Pestaña Torneos BTC dentro de Dragon Net Battle.\n"
     "• F2 muestra el bracket; Tab usa el chat nativo para toda la sala.\n"
     "• Servicio propio de códigos BTC de seis caracteres, probado localmente; alojamiento público pendiente.\n"
@@ -1579,6 +1581,12 @@ def launch_patched(
     game_output_fd: int | None = None,
 ):
     launch_env = dict(env or {})
+    if RELEASE_PROFILE:
+        from btc_matchmaking import environment
+        try:
+            launch_env.update(environment(load_config(), launch_env))
+        except ValueError as exc:
+            raise LoaderError(str(exc)) from None
     online_hash = ""
 
     if convert_intro:
@@ -1774,6 +1782,8 @@ def launch_patched(
             f"call_wrappers={len(CALL_WRAPPER_TARGETS)}",
             f"direct_branches={direct_count}",
             f"data_patches={data_patch_count}",
+            f"btc_matchmaking_url={launch_env.get('BT3_MATCH_URL', 'native-default')}",
+            f"btc_matchmaking_configured={launch_env.get('BTC_MATCH_UNCONFIGURED') != '1'}",
         ]
         log_lines.extend(f"{name} direct={direct_by_target[name]}" for name in sorted(direct_by_target))
         (exe_path.parent / log_name).write_text("\n".join(log_lines) + "\n", encoding="utf-8")
@@ -2004,6 +2014,9 @@ def prepare(release: Path, iso: Path, runtime: Path, force_iso: bool = False) ->
         "release": str(release.resolve()), "iso": str(iso.resolve()),
         "runtime": str(runtime.resolve()), "exe_sha256": sha256_file(exe),
     }
+    previous = load_config()
+    if "btc_matchmaking_url" in previous:
+        state["btc_matchmaking_url"] = previous["btc_matchmaking_url"]
     save_config(state)
     (runtime / "IMPORTANTE - iniciar con Competitive Loader.txt").write_text(
         "No abras Tenkaichi3Decomp.exe directamente.\n\n"

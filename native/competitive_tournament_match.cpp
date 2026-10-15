@@ -69,6 +69,10 @@ static void risingTournamentPump(unsigned wins1, unsigned wins2, unsigned winner
         risingMatchNotice[0] = 0;
     }
     if (risingMatchStage == 0 && !risingBusy()) {
+        if(SDL_getenv("BTC_MATCH_UNCONFIGURED")) {
+            SDL_snprintf(risingMatchNotice,sizeof(risingMatchNotice),"Falta configurar el Worker BTC en el Loader. Este cruce espera nuestro servicio; no usa el servidor oficial.");
+            return;
+        }
         if (t.role == 2 && !m.code[0]) return;
         for (unsigned i = 0; i < risingState.count; ++i)
             if (risingState.users[i].id == risingState.self_id) Port_NetNameSet(risingState.users[i].name);

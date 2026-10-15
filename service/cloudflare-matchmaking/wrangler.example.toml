@@ -1,0 +1,14 @@
+name = "btc-matchmaking"
+main = "upstream/worker.js"
+compatibility_date = "2026-10-15"
+workers_dev = true
+
+[vars]
+MIN_RELEASE = "135"
+LATEST_RELEASE = "135"
+# No upstream keys are copied. No TURN credentials are set by this template.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "btc-matchmaking-rooms"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"

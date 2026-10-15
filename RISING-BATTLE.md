@@ -31,3 +31,16 @@ El anfitrión configura temática, FT1–FT5 y de 1–5 personajes declarados. L
 Cada bot usa runtime, save y proceso propios; solo arranca cuando le toca. Se retiran exclusivamente sus procesos mediante jobs de Windows. El humano usa una copia aislada del save en el candidato preparado. Los datos se leen de la instalación competitiva. Los registros y hashes quedan en logs/tournament-lab, excluidos de Git; no se suben automáticamente.
 
 El servicio guarda estado en memoria: reiniciarlo elimina sus salas. Hay pruebas de protocolo, cuatro clientes, autorizaciones y torneo completo; no se ha probado todavía entre equipos por Internet ni bajo carga pública. El puente entre Loader y juego usa ABI 5; la red se realiza fuera del hilo de renderizado.
+
+## Matchmaking propio activo en 1.5.2
+
+La versión 1.5.2 usa por defecto nuestro Worker Cloudflare:
+https://btc-matchmaking.paulogomez41.workers.dev . No recurre al matchmaking oficial
+del decomp. La dirección se aplica también a los bots. El botón Configurar
+matchmaking BTC permite cambiarla; guardar vacío desactiva los códigos de pelea.
+La cuenta mantiene el plan gratuito y no tiene TURN configurado.
+
+Se verificaron Host/Join por HTTPS y conexión de dos instancias reales del juego
+a través del Worker propio. La sala de torneo sigue usando el coordinador local;
+el Worker publicado enlaza solo las peleas. El espectador y la sala pública del
+torneo siguen pendientes. La guía está en service/cloudflare-matchmaking.

@@ -161,6 +161,10 @@ int main(int argc, char **argv) {
     risingTournamentPump(0, 0, 0, 0);
     assert(starts == 0); // Room host waiting for a turn does not join as a third player.
     t.role = 1;
+    SDL_setenv_unsafe("BTC_MATCH_UNCONFIGURED","1",1);
+    risingTournamentPump(0,0,0,0);
+    assert(starts==0 && strstr(risingMatchNotice,"Worker BTC"));
+    SDL_unsetenv_unsafe("BTC_MATCH_UNCONFIGURED");
     risingTournamentPump(0, 0, 0, 0);
     assert(starts == 1 && startHost == 1 && CompetitiveFt(sRules) == 2);
     const int cancelsBefore=originalCancels;Competitive_RoomLobbyCancel();assert(originalCancels==cancelsBefore);

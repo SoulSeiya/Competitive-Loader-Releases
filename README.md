@@ -63,3 +63,11 @@ La prueba adicional `tests/test_window_native.cpp` crea su propia ventana SDL oc
 La traza del ataque 1 de Androide 16 llega a EftObj_Create → BtlObj_Create → BtlObjMdl_BindFiles, leyendo modelo nulo+0x6C. EftObj_Create usa size=0x20 para un modelo embebido; el comprobador competitivo trataba ese valor fijo como longitud del archivo y devolvía una entrada vacía. La nueva extensión recupera un límite de lectura dentro de la asignación activa que contiene el modelo antes de delegar al constructor original. No sustituye la entrada vacía por un efecto arbitrario ni desactiva los límites de los archivos normales.
 
 Se regenera con `./build_effect_model.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. La prueba nativa `tests/test_effect_model_native.cpp` reproduce el modelo vacío y verifica el tamaño recuperado, datos truncados, memoria liberada y recursos ordinarios. El 15 de octubre de 2026 el usuario repitió el ataque 1 de Androide 16 con el Loader 1.3.2 y confirmó que funcionó sin el cierre reportado.
+
+### Matchmaking BTC 1.5.2
+
+El Worker de las peleas está desplegado en Cloudflare y es el predeterminado en el
+Loader: https://btc-matchmaking.paulogomez41.workers.dev . El perfil Release no
+recurre al servidor oficial. El botón Configurar matchmaking BTC permite cambiar
+la URL; guardar vacío desactiva los códigos. El coordinador público del torneo y
+el relay TURN siguen pendientes. [Operación del Worker](service/cloudflare-matchmaking/README.md).
