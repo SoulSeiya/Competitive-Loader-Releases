@@ -1,3 +1,10 @@
+Competitive Loader 1.5.7 — compatible con Tenkaichi3Decomp 0.1.35.4.
+Actualiza el motor oficial conservando las correcciones BTC de audio, efectos,
+tiempos, FT y marcador. Valida funciones y llamadas antes de iniciar el juego.
+Esta revision se centra en las partidas normales; el desarrollo de torneos queda pendiente.
+
+Historial de funciones anteriores:
+
 Competitive Loader 1.5.5 — candidato de prueba.
 El tiempo online se aplica al combate desde la opcion acordada por el anfitrion.
 Correccion de la entrega de codigos de combate a traves del servicio de salas.
@@ -31,7 +38,7 @@ Guía de uso: RISING-BATTLE.md. Registros: carpeta logs junto al Loader.
 - Interfaz para jugar con el perfil actualizado: reglas competitivas, chat y pausa oficiales del decomp.
 - Tiempos online 180, 240, 360 y 480 segundos; sin límite conserva su comportamiento.
 - Correcciones del vídeo de apertura y del audio AFS2. El audio no modifica el contador lógico de la sesión online.
-- Consulta GitHub antes de jugar e instala automáticamente publicaciones del decomp que superen la validación de compatibilidad. Esta versión admite el ejecutable revisado de v0.1.35.2. Si una publicación futura cambia, conserva la instalación funcional y deja el motivo en el registro; puede requerir un nuevo Loader.
+- Consulta GitHub antes de jugar e instala la versión compatible revisada: v0.1.35.4. También admite v0.1.35.2. Localiza los parches por símbolos y comprueba sus llamadas y etiquetas antes del inicio. Las versiones futuras requieren revisar sus estructuras y funciones; se conserva la instalación funcional ante una incompatibilidad.
 - Registros locales separados por sesión: local.log, online.log, session.json y patch.log; recoge el informe nativo bt3_crash.txt si se genera. Logs con rotación de tamaño. No se suben automáticamente.
 - Registra código de salida, versiones y hashes del decomp, payload y memory para investigar cierres, incompatibilidades y desyncs. Un log no identifica por sí solo la causa de toda desincronización.
 

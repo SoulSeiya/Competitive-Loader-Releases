@@ -1,3 +1,10 @@
+Competitive Loader 1.5.7 — candidato compatible con decomp 0.1.35.4.
+Descarga de la version oficial 0.1.35.4; se conservan sus fuentes y paneles nuevos.
+Revision de ABI y resolucion de los parches BTC en ambos ejecutables compatibles.
+Comprobacion previa de funciones, llamadas y etiquetas; plan propio por ejecutable.
+Se mantienen las correcciones de audio, efectos, FT, tiempos y torneos.
+Esta revision se centra en las partidas normales; el desarrollo de torneos queda pendiente.
+
 Competitive Loader 1.5.5 — candidato de prueba.
 El tiempo online se aplica al combate desde la opcion acordada por el anfitrion.
 Correccion de la entrega de codigos de combate a traves del servicio de salas.

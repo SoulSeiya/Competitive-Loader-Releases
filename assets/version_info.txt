@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 5, 6, 0),
-    prodvers=(1, 5, 6, 0),
+    filevers=(1, 5, 7, 0),
+    prodvers=(1, 5, 7, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,12 +16,12 @@ VSVersionInfo(
         [
           StringStruct('CompanyName', 'Rising'),
           StringStruct('FileDescription', 'Competitive Loader para Tenkaichi3Decomp'),
-          StringStruct('FileVersion', '1.5.6'),
+          StringStruct('FileVersion', '1.5.7'),
           StringStruct('InternalName', 'Competitive Loader'),
           StringStruct('LegalCopyright', 'Decomp: z3xox | Competitive Loader: Rising'),
           StringStruct('OriginalFilename', 'Competitive Loader.exe'),
           StringStruct('ProductName', 'Competitive Loader'),
-          StringStruct('ProductVersion', '1.5.6')
+          StringStruct('ProductVersion', '1.5.7')
         ]
       )
     ]),

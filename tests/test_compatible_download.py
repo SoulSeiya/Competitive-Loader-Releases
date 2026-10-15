@@ -19,7 +19,7 @@ class CompatibleDownloadTests(unittest.TestCase):
                                 return_value=io.BytesIO(json.dumps(data).encode())) as fetch):
             info = core.installation_release_info()
         self.assertEqual(info["tag"], core.SUPPORTED_DECOMP_TAG)
-        self.assertTrue(fetch.call_args.args[0].full_url.endswith("/tags/v0.1.35.2"))
+        self.assertTrue(fetch.call_args.args[0].full_url.endswith("/tags/" + core.SUPPORTED_DECOMP_TAG))
 
     def test_metadata_failure_falls_back_to_reviewed_download(self):
         class StopDownload(Exception):

@@ -29,32 +29,16 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 6)
+APP_VERSION = (1, 5, 7)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
-    "• Menú de torneos sin botones de laboratorio; las pruebas se abren por separado.\n"
-    "• Matchmaking BTC propio por defecto en Cloudflare; la app ya no recurre al servidor oficial del decomp.\n"
-    "• Puedes cambiar el Worker desde el Loader. La sala de torneo pública y el relay siguen pendientes.\n"
-    "• Pestaña Torneos BTC dentro de Dragon Net Battle.\n"
-    "• F2 muestra el bracket; Tab usa el chat nativo para toda la sala.\n"
-    "• Servicio propio de códigos BTC de seis caracteres, probado localmente; alojamiento público pendiente.\n"
-    "• Rising Battle en la entrada Tenkaichi Budokai Online: torneos BTC de 2 a 32 inscritos.\n"
-    "• Temática, FT1–FT5, inscripción y bracket con pases libres y anuncios de cruces.\n"
-    "• Prueba Todos contra mí: tú y tres bots, tres sets consecutivos sin eliminación.\n"
-    "• Vista local de la ventana de un bot; el espectador online por replay sigue pendiente.\n"
-    "• Bots de prueba para llenar salas, probar chat, listo y expulsiones.\n"
-    "• Invitación BTC1: copiar un código para entrar a la sala.\n"
-    "• Pruebas de salas BTC: panel de desarrollo accesible desde F1.\n"
-    "• Crear o unirse por IP, puerto y clave; hasta 32 usuarios.\n"
-    "• Lista de usuarios, estado listo, chat y expulsión por el anfitrión.\n"
-    "• Dragon Net Battle conserva su menú y sus códigos originales.\n"
-    "• Corrección de carga de modelos de efectos, incluido el fallo detectado al atacar con Androide 16.\n"
-    "• FT1 a FT5 en la pestaña Host del menú online F1.\n"
-    "• Ganador en grande y GG al completar el FT; cierre de la sesión para ambos.\n"
-    "• Nombre del rival conectado en la selección de personajes.\n"
-    "• Botón Buscar actualizaciones sin reiniciar el Loader.\n"
-    "• Conserva el marcador, bloqueo de ventana y registros de diagnóstico."
+    "• Compatible con Tenkaichi3Decomp 0.1.35.4 y 0.1.35.2.\n"
+    "• Descarga automática de la 0.1.35.4, con sus mejoras visuales originales.\n"
+    "• Comprobación de funciones, llamadas y etiquetas antes de iniciar el juego.\n"
+    "• Se conservan las correcciones de audio y efectos, FT, marcador y tiempos BTC.\n"
+    "• Dragon Net Battle conserva las partidas directas y sus códigos.\n"
+    "• Registros locales y online y búsqueda de actualizaciones desde el Loader."
 )
 COMPETITIVE_SLUS_SHA1 = "28992f0d472bbb6b67cc193bb7d79b8a78bd7feb"
 DBZP_SHA1 = "4f910969e05d9b25c83af7642b60da9949a4348b"
@@ -74,6 +58,7 @@ CONFIG = HERE / "competitive_loader.json"
 RELEASE_PROFILE = False
 REVIEWED_DECOMP_HASHES = {
     "a34fe8141d4190077e5bb8c874fb39280815535bb6b53f82e669daac1636b9b9": "v0.1.35.2",
+    "9c9b496cda2e0388581a4debc742f2a606d0646c040f3de65f6e7bac7b1809b2": "v0.1.35.4",
 }
 SAVE_NAME = "BASLUS-21678DBZT3"
 SAVE_FILE_SIZES = {
@@ -87,7 +72,7 @@ LATEST_WINDOWS_RELEASE = (
     "Tenkaichi3Decomp-windows-x64.zip"
 )
 LATEST_RELEASE_API = "https://api.github.com/repos/z3xox/Tenkaichi3Decomp/releases/latest"
-SUPPORTED_DECOMP_TAG = "v0.1.35.2"
+SUPPORTED_DECOMP_TAG = "v0.1.35.4"
 SUPPORTED_WINDOWS_RELEASE = (
     f"https://github.com/z3xox/Tenkaichi3Decomp/releases/download/{SUPPORTED_DECOMP_TAG}/"
     "Tenkaichi3Decomp-windows-x64.zip"
@@ -159,6 +144,9 @@ COMPETITIVE_TIME_LABEL_PATCHES = {
     b"240 seconds\0": b"480 seconds\0",
 }
 ONLINE_TIME_LABEL_PATCHES = dict(COMPETITIVE_TIME_LABEL_PATCHES)
+# Always derive a profile from the original patch list. Rechecking another
+# executable must not inherit a previous profile's filtered patch selection.
+BASE_PATCHES = {name: tuple(targets) for name, targets in PATCHES.items()}
 
 
 class LoaderError(RuntimeError):
@@ -170,7 +158,7 @@ class IncompatibleDecompError(LoaderError):
 
 
 def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competitive_times: bool = False, session_score: bool = False) -> None:
-    """Opt-in laboratory profile, pinned to the locally reviewed Windows build.
+    """Select hooks for reviewed builds sharing the checked native ABI.
 
     Keep competitive gameplay/model objects but do not inject the legacy native
     online/audio extensions. Call before creating any PayloadImage.
@@ -183,7 +171,7 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
         )
     global PATCHES, CALL_WRAPPERS, ENTRY_PATCH_TARGETS, CALL_WRAPPER_TARGETS
     global PATCH_TARGETS, PATCH_OBJECTS, PATCH_SYMBOLS, ONLINE_TIME_LABEL_PATCHES
-    PATCHES = {name: targets for name, targets in PATCHES.items() if name != "battle_hud_e_d.o"}
+    PATCHES = {name: list(targets) for name, targets in BASE_PATCHES.items() if name != "battle_hud_e_d.o"}
     CALL_WRAPPERS = {"competitive_audio.o": {"ADXT_StartAfs": "Competitive_AudioStartAfs"}} if audio_fix else {}
     CALL_WRAPPERS["competitive_effect_model.o"] = {"BtlObj_Create": "Competitive_EffectModelCreate"}
     if competitive_times:
@@ -1328,6 +1316,7 @@ class PeSymbols:
         self.raw_sections: list[tuple[int, bytes]] = []
         self.text_rva = 0
         self.text_data = b""
+        self._branch_index = None
         for index in range(1, nsections + 1):
             pos = secpos + (index - 1) * 40
             name = data[pos:pos + 8].split(b"\0", 1)[0].decode("ascii", "replace")
@@ -1381,17 +1370,21 @@ class PeSymbols:
         target = self.rvas.get(name)
         if target is None or not self.text_data:
             return []
-        result = []
-        data = self.text_data
-        for offset in range(len(data) - 4):
-            opcode = data[offset]
-            if opcode not in (0xE8, 0xE9):
-                continue
-            displacement, = struct.unpack_from("<i", data, offset + 1)
-            instruction_rva = self.text_rva + offset
-            if instruction_rva + 5 + displacement == target:
-                result.append((instruction_rva, opcode))
-        return result
+        if self._branch_index is None:
+            index = {}
+            data = self.text_data
+            destinations = set(self.rvas.values())
+            for offset in range(len(data) - 4):
+                opcode = data[offset]
+                if opcode not in (0xE8, 0xE9):
+                    continue
+                displacement, = struct.unpack_from("<i", data, offset + 1)
+                instruction_rva = self.text_rva + offset
+                destination = instruction_rva + 5 + displacement
+                if destination in destinations:
+                    index.setdefault(destination, []).append((instruction_rva, opcode))
+            self._branch_index = index
+        return list(self._branch_index.get(target, ()))
 
     def literal_addresses(self, needle: bytes, actual_base: int) -> list[int]:
         """Return loaded addresses of an exact byte string in PE sections."""
@@ -1410,6 +1403,12 @@ class PeSymbols:
 class PayloadImage:
     def __init__(self, payload_dir: Path, pe: PeSymbols):
         self.pe = pe
+        # Keep the plan with its executable, independent of later validations.
+        self.entry_targets = frozenset(ENTRY_PATCH_TARGETS)
+        self.wrapper_targets = frozenset(CALL_WRAPPER_TARGETS)
+        self.patch_symbols = dict(PATCH_SYMBOLS)
+        self.time_label_patches = dict(ONLINE_TIME_LABEL_PATCHES)
+        self.release_profile = RELEASE_PROFILE
         self.objects = [CoffObject(payload_dir / name) for name in PATCH_OBJECTS]
         self.size = 0
         for obj in self.objects:
@@ -1436,7 +1435,7 @@ class PayloadImage:
 
         replacements = {}
         missing_symbols = []
-        for target, symbol in PATCH_SYMBOLS.items():
+        for target, symbol in self.patch_symbols.items():
             if symbol in definitions:
                 replacements[target] = definitions[symbol]
             else:
@@ -1460,7 +1459,7 @@ class PayloadImage:
                     # while local/static symbols stay inside the mapped object.
                     # Only the explicit replacement functions point to payload.
                     official = self.pe.address(symbol.name, actual_image_base) if symbol.name else None
-                    if symbol.name in ENTRY_PATCH_TARGETS:
+                    if symbol.name in self.entry_targets:
                         target = replacements[symbol.name]
                     elif target_section and target_section.allocated and symbol.storage != 2:
                         target = target_section.remote + symbol.value
@@ -1535,7 +1534,38 @@ def validate_payload(payload_dir: Path, exe_path: Path) -> PayloadImage:
         raise LoaderError(
             "La actualización oficial no contiene las funciones esperadas: " + ", ".join(absent)
         )
-    return PayloadImage(payload_dir, pe)
+    image = PayloadImage(payload_dir, pe)
+    if RELEASE_PROFILE:
+        validate_patch_contract(image)
+    return image
+
+
+def validate_patch_contract(image: PayloadImage) -> dict:
+    """Check the selected binary's hook sites before any process is started.
+
+    Symbol names relocate hooks across reviewed releases. They do not prove
+    struct layouts or semantics: unknown builds still need a source/ABI review.
+    """
+    pe = image.pe
+    failures = []
+    calls = {}
+    for name in sorted(image.patch_symbols):
+        rva = pe.rvas.get(name, -1)
+        if name in pe.absolute or not pe.text_rva <= rva <= pe.text_rva + len(pe.text_data) - 5:
+            failures.append(f"{name}: fuera del código ejecutable")
+            continue
+        if name in image.wrapper_targets:
+            calls[name] = len(pe.direct_branches_to(name))
+            if not calls[name]:
+                failures.append(f"{name}: no hay llamadas que puedan extenderse")
+    for original, replacement in image.time_label_patches.items():
+        if len(original) != len(replacement) or len(pe.literal_addresses(original, pe.preferred_base)) != 1:
+            failures.append(f"etiqueta de tiempo: {original!r}")
+    if failures:
+        raise IncompatibleDecompError("Contrato de parches incompatible: " + "; ".join(failures))
+    return {"version": REVIEWED_DECOMP_HASHES.get(sha256_file(pe.path)),
+            "entry_hooks": len(image.entry_targets), "wrapper_calls": calls,
+            "time_labels": len(image.time_label_patches)}
 
 
 def _windows_api():
@@ -1608,7 +1638,7 @@ def launch_patched(
     launch_env.setdefault("BTC_REPLAY_RECORD_CPU", None)
     launch_env.setdefault("BTC_REPLAY_SPLIT", None)
     launch_env.setdefault("BTC_LOCAL_SPECTATOR", None)
-    if RELEASE_PROFILE:
+    if image.release_profile:
         from btc_matchmaking import environment
         try:
             launch_env.update(environment(load_config(), launch_env))
@@ -1762,12 +1792,12 @@ def launch_patched(
 
         direct_count = 0
         direct_by_target = {}
-        for name in sorted(PATCH_TARGETS):
+        for name in sorted(image.patch_symbols):
             target = image.pe.address(name, actual_base)
             replacement = replacements[name]
             if target is None:
                 raise LoaderError(f"No se encontró {name} al aplicar el parche.")
-            if name in ENTRY_PATCH_TARGETS:
+            if name in image.entry_targets:
                 displacement = replacement - (target + 5)
                 if not -0x80000000 <= displacement <= 0x7FFFFFFF:
                     raise LoaderError(f"El salto para {name} quedó fuera de rango.")
@@ -1789,7 +1819,7 @@ def launch_patched(
             direct_count += count
 
         data_patch_count = 0
-        for original, replacement in ONLINE_TIME_LABEL_PATCHES.items():
+        for original, replacement in image.time_label_patches.items():
             addresses = image.pe.literal_addresses(original, actual_base)
             if len(addresses) != 1:
                 label = original.rstrip(b"\0").decode("ascii", "replace")
@@ -1809,8 +1839,9 @@ def launch_patched(
             f"pid={int(pi.dwProcessId)}",
             f"image_base=0x{actual_base:X}",
             f"payload_base=0x{remote:X}",
-            f"entry_patches={len(ENTRY_PATCH_TARGETS)}",
-            f"call_wrappers={len(CALL_WRAPPER_TARGETS)}",
+            f"decomp_version={REVIEWED_DECOMP_HASHES.get(sha256_file(exe_path), 'unreviewed')}",
+            f"entry_patches={len(image.entry_targets)}",
+            f"call_wrappers={len(image.wrapper_targets)}",
             f"direct_branches={direct_count}",
             f"data_patches={data_patch_count}",
             f"btc_matchmaking_url={launch_env.get('BT3_MATCH_URL', 'native-default')}",
@@ -1822,8 +1853,8 @@ def launch_patched(
             raise win_error("iniciar el juego")
         success = True
         print(
-            f"[OK] Juego iniciado con {len(ENTRY_PATCH_TARGETS)} entradas, "
-            f"{len(CALL_WRAPPER_TARGETS)} extensiones y "
+            f"[OK] Juego iniciado con {len(image.entry_targets)} entradas, "
+            f"{len(image.wrapper_targets)} extensiones y "
             f"{direct_count} llamadas competitivas verificadas."
         )
         if wait:
