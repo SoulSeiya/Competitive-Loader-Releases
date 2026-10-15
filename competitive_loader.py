@@ -29,10 +29,11 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 8)
+APP_VERSION = (1, 5, 9)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Versión pública centrada en partidas normales, sin salas ni torneos experimentales.\n"
     "• Búsqueda de actualizaciones alternativa cuando GitHub limita su API.\n"
     "• Caché de versiones durante cinco minutos y respeto del tiempo de espera de GitHub.\n"
     "• Compatible con Tenkaichi3Decomp 0.1.35.4 y 0.1.35.2.\n"
@@ -181,19 +182,7 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
         CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
     if session_score:
         CALL_WRAPPERS["competitive_score.o"] = {
-            "BtlCam_UpdateOverride": "Competitive_ReplayCameraOverride",
-            "Demo_SetupBattle": "Competitive_ReplayCpuSetup",
-            "MainMenu_Run": "Competitive_RisingMainMenu",
-            "Port_PadRead": "Competitive_BotPadRead",
-            "PortTbo_Run": "Competitive_TournamentMode",
-            "_ZL9build_netv": "Competitive_RisingMenu",
-            "_ZN5ImGui5BeginEPKcPbi": "Competitive_RisingBegin",
-            "Ui_Event": "Competitive_RisingEvent",
-            "Port_NetActive": "Competitive_RoomNetActive",
-            "PortChat_Count": "Competitive_RoomChatCount",
-            "PortChat_Line": "Competitive_RoomChatLine",
-            "PortChat_Say": "Competitive_RoomChatSay",
-            "Port_LobbyCancel": "Competitive_RoomLobbyCancel",
+            "Ui_Event": "Competitive_WindowEvent",
             "Port_NetRulesSet": "Competitive_FtRulesSet",
             "Port_LobbyStartQuick": "Competitive_FtQuickStart",
             "_ZN5ImGui12TextDisabledEPKcz": "Competitive_FtHostRow",
@@ -1650,10 +1639,6 @@ def launch_patched(
         from btc_matchmaking import environment
         try:
             launch_env.update(environment(load_config(), launch_env))
-            room_url = load_config().get("btc_room_service_url")
-            if room_url:
-                from rising_service import ServiceClient
-                launch_env["BTC_ROOM_SERVICE"] = ServiceClient(room_url).url.removesuffix("/v1/rooms")
         except ValueError as exc:
             raise LoaderError(str(exc)) from None
     online_hash = ""

@@ -1,89 +1,33 @@
-# Competitive-Loader-Releases
-Código y publicaciones de Competitive Loader.
+# Competitive Loader
 
-El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
+Loader publico para jugar Competitive Edition con Tenkaichi3Decomp. Compatible con **0.1.35.4** y **0.1.35.2**.
 
-## Rising Battle 1.5.1 — torneo local en validación
+[Descargar la ultima version](https://github.com/SoulSeiya/Competitive-Loader-Releases/releases/latest)
 
-Dragon Net Battle incorpora la pestaña Torneos BTC y conserva sus partidas directas. F2 muestra el bracket y Tab reutiliza el chat nativo para la sala. El servicio propio genera códigos BTC de seis caracteres para varios miembros; está probado localmente y aún requiere alojamiento público. Incluye inscripciones, FT1–FT5, bracket de 2–32 participantes, pases libres, resultados coincidentes de ambos jugadores y anuncios en el chat. La prueba Todos contra mí prepara cuatro inscritos: el usuario y tres bots con clientes reales programados; el humano juega los tres sets incluso si pierde. La vista de un combate de bots es una ventana local; el espectador remoto por replay y el despliegue público del servicio siguen pendientes. [Uso y límites de la prueba](RISING-BATTLE.md).
+## Funciones de juego
 
-## Release 1.3.2
+- Dragon Net Battle original: Host, Quick match, Join y codigos para partidas de dos jugadores.
+- FT1 a FT5, marcador persistente, rival conectado y GG al terminar el set.
+- Tiempos BTC de 180, 240, 360 y 480 segundos, mas sin limite.
+- Correcciones de intro, audio y modelos de efectos.
+- Chat original con Tab y bloqueo de movimiento de ventana durante el online.
+- Logs locales y online para investigar crashes y desincronizaciones.
+- Busqueda de actualizaciones con cache y alternativa publica cuando GitHub limita su API.
 
-En F1 → Online → Host se puede elegir Sin FT o FT1–FT5 antes de conectar. El anfitrión transmite el objetivo a ambos jugadores con las reglas de la sesión privada. Gana quien alcanza esas victorias confirmadas; los empates no avanzan el FT. Al finalizar, el marcador se detiene, aparece GG con el ganador y se cierra el online de ambos. Ambos necesitan este Loader. La búsqueda rápida mantiene sus reglas.
+## Instalacion
 
-La selección de personajes muestra el rival conectado. El botón Buscar actualizaciones permite consultar de nuevo las versiones de GitHub sin cerrar la aplicación; instalar una actualización sí reinicia el Loader.
+Extrae el ZIP y abre `Competitive Loader.exe`. Necesitas tu propia ISO competitiva y memory compatible. Ambos jugadores deben usar las mismas versiones y datos. Conserva `CompetitiveRuntime` y `competitive_loader.json` al actualizar.
 
-El paquete publicable se construye con `build.ps1` y abre `competitive_release_gui.py`. Consulta las publicaciones del decomp al jugar y valida su compatibilidad antes de instalarlas. La primera versión admite el ejecutable revisado de v0.1.35.2: una publicación futura sin revisar no reemplaza la instalación actual.
+El repositorio y el paquete no incluyen ISO, memory ni datos extraidos del juego.
+Las salas, torneos, bots y espectadores experimentales se mantienen fuera de la distribucion y del codigo actual de main.
 
-Al abrir una versión nueva aparece un aviso con sus mejoras, una sola vez por versión. Durante el online se bloquean arrastre, redimensionado, menú de sistema y F11 para evitar el bucle modal de Windows; al finalizar se restaura el comportamiento de la ventana. El botón de cerrar sigue funcionando.
+## Desarrollo y comprobaciones
 
-El marcador online muestra las victorias y empates de la sesión y se conserva entre peleas y revanchas. Solo cuenta resultados confirmados por la red y descarta observaciones que el rollback repite o corrige. Se reinicia al terminar la sesión.
+`build.ps1` construye el paquete y verifica que no contenga modulos ni parches experimentales. GitHub Actions ejecuta las pruebas y el empaquetado en main. Las Releases se publican desde versiones verificadas.
 
-Cada arranque/operación guarda una carpeta en `logs/` con `local.log`, `online.log` y `session.json`; un arranque correcto añade `patch.log`. Se captura el código de salida y el informe nativo de crash si aparece. Los logs rotan al alcanzar 10 MB (tres respaldos por archivo), permanecen en el equipo y se abren desde el botón de la interfaz. Detalles de esta versión: [RELEASE-NOTES.md](RELEASE-NOTES.md).
+- [Funciones e instalacion](README.txt)
+- [Notas de version](RELEASE-NOTES.md)
+- [Revision de compatibilidad del decomp](docs/decomp-0.1.35.4.md)
+- [Matchmaking propio de dos jugadores](service/cloudflare-matchmaking/README.md)
 
-GitHub Actions comprueba y empaqueta `main`. Una etiqueta `vX.Y.Z` que coincida con la versión del código publica el ZIP en Releases. Las ISO, memory y configuraciones personales no se incluyen en ese paquete.
-
-## Pruebas online con decomp 0.1.35.2
-
-Para jugar manualmente con el perfil nuevo, abre `bin/Competitive Loader Experimental.exe` y pulsa **Jugar Competitive · Experimental**. Usa una instalación competitiva ya preparada con el decomp 0.1.35.2 revisado. Si no encuentra una, permite seleccionar su carpeta. Conserva la importación de memory y fija la versión del decomp; no descarga actualizaciones. El chat se abre con Tab. El menú online y el reloj real usan 180, 240, 360 y 480 segundos, más sin límite; ambos jugadores necesitan esta misma versión. Los tiempos offline originales se restauran antes de cargar una pelea offline.
-
-Construcción de esta interfaz: `python -m PyInstaller --noconfirm --distpath dist --workpath build/experimental "build_gui/Competitive Experimental.spec"`.
-
-La interfaz experimental vuelve a convertir el vídeo de apertura competitivo a fotogramas completos de tipo I, necesarios para el decodificador actual. La primera vez conserva `ZS3USOP.original.PSS` y prepara una copia compatible; no cambia la ISO ni las reglas online. El laboratorio automatizado conserva su configuración anterior para reproducir los resultados registrados.
-
-La interfaz también activa una corrección independiente del audio AFS2: respeta la marca de fin CRI en el reproductor físico, bajo el bloqueo del stream. No cambia los archivos, no calcula índices usando el tamaño de Player y no escribe gPortAdxView ni su duración lógica online. El objeto se regenera con `./build_audio.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. Las pruebas nativas están en `tests/test_audio_native.cpp` (compilar y ejecutar con un compilador C++ de Windows x64).
-
-Los tiempos se regeneran con `./build_times.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. Su wrapper solo establece los cuatro valores según el estado de sesión antes de Battle_Load; no introduce barreras ni fotogramas adicionales. Las etiquetas se reemplazan únicamente si cada texto aparece una vez en el ejecutable revisado.
-
-Esta rama incorpora un laboratorio experimental: [ONLINE-LAB.md](ONLINE-LAB.md).
-Ejecuta dos runtimes independientes por loopback y conserva logs y hashes para investigar desincronizaciones.
-
-El laboratorio automatizado mantiene su perfil base para reproducir pruebas anteriores. La GUI de Release activa las correcciones de audio, tiempos y marcador; `--session-score` permite probar el marcador en el laboratorio con los tiempos oficiales.
-
-El laboratorio conserva las reglas competitivas y prueba las implementaciones oficiales de red, chat, pausa y tiempos de voz. Deja fuera las extensiones antiguas de red/audio y utiliza los tiempos oficiales mientras se valida la base.
-
-## Desarrollo
-
-Python 3 en Windows x64:
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-Para construir la aplicación gráfica de Release: `./build.ps1` (instala PyInstaller).
-
-Los objetos de `payload/` son los artefactos existentes usados por el parche. Su regeneración reproducible a partir de las modificaciones de gameplay sigue pendiente de integrar; `native/competitive_chat.cpp` contiene la extensión antigua, excluida del perfil de laboratorio.
-
-El objeto del marcador se regenera con `./build_score.ps1 -Compiler RUTA_CLANG_PLUS_PLUS -ImGuiInclude RUTA_DECOMP/port/third_party/imgui -SdlInclude RUTA_SDL/include`, usando los headers del decomp v0.1.35.2 revisado. `tests/test_score_native.cpp` comprueba confirmación, revanchas, rollback, empates y reinicio de sesión. GitHub Actions ejecuta esta prueba nativa además de las pruebas Python. Las pruebas locales finitas no garantizan ausencia de desync en Internet.
-
-La prueba adicional `tests/test_window_native.cpp` crea su propia ventana SDL oculta y comprueba la instalación/restauración del procedimiento de Windows, los comandos de movimiento/tamaño y F11. Compilar con C++ Windows x64, headers/biblioteca SDL3 y user32. `--release-profile` en el laboratorio usa la petición de sesión nativa desde un estado normal guardado; el perfil base conserva su arranque anterior para reproducir sus resultados.
-
-## Hotfix 1.3.2
-
-La traza del ataque 1 de Androide 16 llega a EftObj_Create → BtlObj_Create → BtlObjMdl_BindFiles, leyendo modelo nulo+0x6C. EftObj_Create usa size=0x20 para un modelo embebido; el comprobador competitivo trataba ese valor fijo como longitud del archivo y devolvía una entrada vacía. La nueva extensión recupera un límite de lectura dentro de la asignación activa que contiene el modelo antes de delegar al constructor original. No sustituye la entrada vacía por un efecto arbitrario ni desactiva los límites de los archivos normales.
-
-Se regenera con `./build_effect_model.ps1 -Compiler RUTA_CLANG_PLUS_PLUS`. La prueba nativa `tests/test_effect_model_native.cpp` reproduce el modelo vacío y verifica el tamaño recuperado, datos truncados, memoria liberada y recursos ordinarios. El 15 de octubre de 2026 el usuario repitió el ataque 1 de Androide 16 con el Loader 1.3.2 y confirmó que funcionó sin el cierre reportado.
-
-### Matchmaking BTC 1.5.2
-
-El Worker de las peleas está desplegado en Cloudflare y es el predeterminado en el
-Loader: https://btc-matchmaking.paulogomez41.workers.dev . El perfil Release no
-recurre al servidor oficial. El botón Configurar matchmaking BTC permite cambiar
-la URL; guardar vacío desactiva los códigos. El coordinador público del torneo y
-el relay TURN siguen pendientes. [Operación del Worker](service/cloudflare-matchmaking/README.md).
-
-### Candidato con amigos 1.5.3
-
-Controles de bots de sala disponibles también mediante el coordinador HTTPS,
-con autorización del anfitrión. El Loader guarda la URL de salas y la aplica al
-menú del juego. `--room-test-host` abre un iniciador explícito de servicio local y
-Quick Tunnel (requiere cloudflared.exe junto al Loader); solo detiene sus dos
-procesos propios. La dirección y las salas son temporales. No se ha validado aún
-una sesión manual entre dos equipos. Véase RISING-BATTLE.md.
-
-### Separación del laboratorio y replay 1.5.4
-
-El menú normal de Torneos BTC deja de mostrar los controles de laboratorio,
-bots y simulación. La prueba de espectador queda en LAB-ESPECTADOR.md: replay
-CPU/CPU con dos cámaras nativas, como P1/P2 local, dentro de una sola ventana.
-Es reproducción local; el transporte de espectador online sigue pendiente.
+Los ensayos locales no sustituyen las partidas prolongadas entre equipos reales.

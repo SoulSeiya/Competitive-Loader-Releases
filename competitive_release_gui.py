@@ -10,7 +10,6 @@ from tkinter import filedialog, messagebox, simpledialog
 import competitive_loader as core
 from competitive_gui import CompetitiveApp
 from session_diagnostics import SessionDiagnostics, make_logger
-from rising_room_bridge import RoomBridge
 
 core.RELEASE_PROFILE = True
 LOGS = core.HERE / "logs"
@@ -19,7 +18,6 @@ LOGS = core.HERE / "logs"
 class ReleaseApp(CompetitiveApp):
     def __init__(self, root):
         self.session = None
-        self.room_bridge = RoomBridge(make_logger("competitive.room", LOGS / "rising-battle.log"))
         super().__init__(root)
         root.title(f"Competitive Loader {core.APP_VERSION_TEXT}")
         def refresh(widget):
@@ -34,13 +32,11 @@ class ReleaseApp(CompetitiveApp):
                   bg=self.PANEL, fg=self.TEXT).pack(side="bottom", fill="x")
         tk.Button(root,text="Configurar matchmaking BTC (Worker)",command=self.configure_matchmaking,
                   bg=self.PANEL,fg=self.TEXT).pack(side="bottom",fill="x")
-        tk.Button(root,text="Configurar servicio de salas BTC",command=self.configure_room_service,
-                  bg=self.PANEL,fg=self.TEXT).pack(side="bottom",fill="x")
         self._append("Perfil competitivo: intro y audio corregidos; chat y pausa oficiales.\n"
                      "Marcador online persistente entre peleas y revanchas.\n"
                      "Las actualizaciones del decomp se validan antes de instalarlas.\n"
                      "Ambos jugadores necesitan el mismo Loader, decomp y memory.\n")
-        if not any(flag in sys.argv for flag in ("--smoke-test","--tournament-test","--spectator-tournament-test")):
+        if "--smoke-test" not in sys.argv:
             root.after(600, self.show_version_notes)
 
     def show_version_notes(self):
@@ -73,7 +69,7 @@ class ReleaseApp(CompetitiveApp):
             return
         config=core.load_config()
         from btc_matchmaking import DEFAULT_MATCHMAKING
-        value=simpledialog.askstring("Matchmaking BTC","URL de nuestro Worker de peleas (https://…).\nNo es la URL del servicio de salas/torneos.\nVacío: códigos desactivados hasta configurar el Worker.",
+        value=simpledialog.askstring("Matchmaking BTC","URL de nuestro Worker de peleas (https://…).\nVacío: códigos desactivados hasta configurar el Worker.",
                                      initialvalue=config.get("btc_matchmaking_url",DEFAULT_MATCHMAKING),parent=self.root)
         if value is None:return
         from btc_matchmaking import validate_url
@@ -84,23 +80,6 @@ class ReleaseApp(CompetitiveApp):
         core.save_config(config)
         self._append("Matchmaking BTC configurado para el próximo inicio.\n" if value else
                      "Sin Worker BTC: códigos de pelea pendientes; offline e IP siguen disponibles.\n")
-
-    def configure_room_service(self):
-        if self.busy or (self.session and self.session.running):
-            messagebox.showinfo(core.APP_NAME,"Cierra el juego antes de cambiar el servicio de salas.",parent=self.root)
-            return
-        config=core.load_config()
-        value=simpledialog.askstring("Salas BTC","Pega la dirección HTTPS que te da el anfitrión.\nAmbos deben usar la misma dirección; después compartid el room code BTC.",
-            initialvalue=config.get("btc_room_service_url","http://127.0.0.1:7010"),parent=self.root)
-        if value is None:return
-        from rising_service import ServiceClient
-        from rising_room import RoomError
-        try:value=ServiceClient(value).url.removesuffix("/v1/rooms")
-        except (RoomError,ValueError) as exc:
-            messagebox.showerror(core.APP_NAME,str(exc),parent=self.root);return
-        config["btc_room_service_url"]=value
-        core.save_config(config)
-        self._append("Servicio de salas guardado para el próximo inicio.\n")
 
     def _append(self, text):
         super()._append(text)
@@ -144,11 +123,7 @@ class ReleaseApp(CompetitiveApp):
                     print("[AVISO] No se pudo instalar una actualización compatible; se comprobará la copia instalada.")
                 image = core.validate_payload(core.PAYLOAD, exe)
                 image.build(0x60000000, image.pe.preferred_base)
-                self.room_bridge.runtime = runtime
-                env = {"BTC_ROOM_BRIDGE": self.room_bridge.name}
-                if "--spectator-tournament-test" in sys.argv:env["BTC_TOURNAMENT_DEMO_USER"]="1"
-                pid = self.session.launch(exe, image, env=env)
-                self._game_started(pid)
+                pid = self.session.launch(exe, image)
                 return pid
             self._run("Comprobando actualizaciones e iniciando Competitive",
                       "Competitive iniciado. Mantén el Loader abierto mientras juegas.", launch)
@@ -168,23 +143,9 @@ class ReleaseApp(CompetitiveApp):
                 core.import_ps2_card(Path(card), runtime)
             image = core.validate_payload(core.PAYLOAD, prepared)
             image.build(0x60000000, image.pe.preferred_base)
-            self.room_bridge.runtime = prepared.parent
-            env={"BTC_ROOM_BRIDGE":self.room_bridge.name}
-            if "--spectator-tournament-test" in sys.argv:env["BTC_TOURNAMENT_DEMO_USER"]="1"
-            pid=self.session.launch(prepared, image, env=env)
-            self._game_started(pid)
+            pid = self.session.launch(prepared, image)
             return pid
         self._run("Preparando la instalación competitiva", "Instalación lista y Competitive iniciado.", install)
-
-    def _game_started(self,pid):
-        self.room_bridge.game_pid=pid
-        if "--spectator-tournament-test" in sys.argv:
-            from rising_room_bridge import Command
-            shared=self.room_bridge.shared
-            if shared.command_seq!=shared.ack_seq:raise core.LoaderError("La sala está ocupada; reinicia la prueba")
-            shared.command=Command(op=24,name=b"UT Rising")
-            shared.command_seq+=1
-            self._append("Prueba de tres: pulsa Iniciar torneo. Primero observas bots vs bots; despues juegas la final. FT1 / 180 segundos.\n")
 
     def close_app(self):
         if self.session and self.session.running:
@@ -195,7 +156,6 @@ class ReleaseApp(CompetitiveApp):
             self.session.finish("loader_closed_while_game_running")
         elif self.session:
             self.session.dispose()
-        self.room_bridge.close()
         self.root.destroy()
 
 
@@ -216,36 +176,13 @@ def main():
     if "--smoke-test" in sys.argv:
         root.withdraw()
         root.update()
-        app.room_bridge.close()
         root.destroy()
     else:
-        if "--tournament-test" in sys.argv or "--spectator-tournament-test" in sys.argv: root.after(200, app.play)
         root.mainloop()
 
 
 if __name__ == "__main__":
-    if "--watch-replay" in sys.argv:
-        from replay_spectator import watch
-        replay=Path(sys.argv[sys.argv.index("--watch-replay")+1]).resolve()
-        result=watch(Path(core.load_config().get("runtime",core.DEFAULT_RUNTIME)),replay)
-        if result:raise SystemExit(result)
-    elif any(flag in sys.argv for flag in ("--room-test-host","--smoke-room-test-host","--four-player-room-test-host")):
-        from temporary_room_host import main as host_main
-        host_main()
-    elif "--tournament-bot-worker" in sys.argv:
-        from rising_game_bots import run_worker
-        run_worker(sys.argv[sys.argv.index("--tournament-bot-worker") + 1])
-    elif "--smoke-room" in sys.argv:
-        from rising_room import smoke_test
-        smoke_test()
-    elif "--smoke-service" in sys.argv:
-        from rising_service import smoke_test
-        smoke_test()
-    elif "--room-service" in sys.argv:
-        from rising_service import main as service_main
-        sys.argv.remove("--room-service")
-        service_main()
-    elif "--apply-loader-update" in sys.argv:
+    if "--apply-loader-update" in sys.argv:
         i = sys.argv.index("--apply-loader-update")
         core.apply_loader_update(int(sys.argv[i + 1]), Path(sys.argv[i + 2]), Path(sys.argv[i + 3]))
     elif "--finish-loader-update" in sys.argv:

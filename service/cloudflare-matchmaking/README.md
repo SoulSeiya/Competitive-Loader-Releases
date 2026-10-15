@@ -44,14 +44,6 @@ podrían no conectar. No se han creado claves TURN ni cambiado el plan gratuito;
 configuración y límites deben revisarse antes de activarlo. Workers y D1 tienen
 planes gratuitos con cuotas, no recursos ilimitados.
 
-## Separación de servicios
-
-Este Worker genera códigos **de combate para dos jugadores**. El coordinador
-`rising_service.py` mantiene **la sala de torneo, usuarios, bracket y chat**. Su
-protocolo es distinto y el servidor Python no se puede pegar como un Worker JS.
-La sala de torneo todavía requiere alojamiento propio o una adaptación posterior
-a Workers/Durable Objects. Cambiar `BT3_MATCH_URL` por sí solo no publica esa sala.
-
 Documentación de referencia:
 - https://github.com/z3xox/Tenkaichi3Decomp/tree/main/port/matchmaking
 - https://developers.cloudflare.com/workers/platform/pricing/

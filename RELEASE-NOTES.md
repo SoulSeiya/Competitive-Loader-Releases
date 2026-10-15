@@ -1,79 +1,9 @@
-Competitive Loader 1.5.8 — actualizador tolerante a limites de GitHub.
-Corrige los errores HTTP 403/429 al buscar versiones mediante una consulta alternativa
-a las paginas publicas de Releases, manteniendo los hashes de descarga disponibles.
-Cache de cinco minutos y espera compartida entre consultas del decomp y del Loader.
-No requiere cuenta ni token de GitHub. Conserva el motor compatible 0.1.35.4.
+Competitive Loader 1.5.9
 
-Competitive Loader 1.5.7 — candidato compatible con decomp 0.1.35.4.
-Descarga de la version oficial 0.1.35.4; se conservan sus fuentes y paneles nuevos.
-Revision de ABI y resolucion de los parches BTC en ambos ejecutables compatibles.
-Comprobacion previa de funciones, llamadas y etiquetas; plan propio por ejecutable.
-Se mantienen las correcciones de audio, efectos, FT, tiempos y torneos.
-Esta revision se centra en las partidas normales; el desarrollo de torneos queda pendiente.
+- Retira de la distribucion publica las salas, torneos, bots y pruebas de espectador.
+- Restaura integramente las entradas y el menu online originales del decomp.
+- Conserva decomp 0.1.35.4, FT, marcador, tiempos BTC, audio, intro y correcciones de efectos.
+- Conserva la solucion de actualizaciones ante HTTP 403/429 de GitHub.
+- El empaquetado comprueba que no se incluyan modulos ni parches experimentales.
 
-Competitive Loader 1.5.5 — candidato de prueba.
-El tiempo online se aplica al combate desde la opcion acordada por el anfitrion.
-Correccion de la entrega de codigos de combate a traves del servicio de salas.
-La prueba de cuatro participantes se entrega aparte; el menu normal conserva su interfaz.
-
-Competitive Loader 1.5.4 — candidato en validación.
-
-- Menú normal de torneo sin botones de laboratorio, bots de prueba ni simuladores.
-- Prueba separada de replay CPU/CPU con cámaras locales P1 y P2 en una sola ventana.
-- La reproducción local no es todavía un espectador online en directo.
-
-Competitive Loader 1.5.3 — candidato de prueba con amigos.
-Sala por HTTPS, chat compartido y bots de sala administrados por el anfitrión.
-El iniciador del anfitrión permite levantar un túnel temporal; aún requiere prueba entre dos equipos.
-Los bots de sala no pelean ni habilitan espectadores remotos.
-
-Competitive Loader 1.5.2: matchmaking propio activo en Cloudflare.
-Worker predeterminado: https://btc-matchmaking.paulogomez41.workers.dev
-Sala publica del torneo y relay TURN pendientes.
-
-
-# Competitive Loader 1.5.1 — candidato local
-
-- Torneos BTC dentro de Dragon Net Battle, conservando las partidas directas.
-- F2: bracket de la sala durante el juego. Tab: chat nativo compartido por sus miembros.
-- Servicio propio de códigos BTC de seis caracteres, hasta 32 usuarios por sala, torneo y chat. Probado localmente; despliegue HTTPS público pendiente.
-- La prueba de cuatro con tres bots conserva los tres sets contra el humano aunque pierda.
-
-# Competitive Loader 1.5.0 — torneo local en validación
-
-- Tenkaichi Budokai Online abre Rising Battle: sala y torneo BTC. Dragon Net Battle conserva su menú y sus códigos originales.
-- Temática, FT1–FT5 y máximo declarado de 1–5 personajes por inscrito. Inscripción individual y cierre al iniciar el torneo.
-- Bracket de eliminación directa para 2–32 inscritos, con sorteo, pases libres y anuncios de cruces y resultados en el chat.
-- Cada cruce conecta automáticamente a sus dos jugadores usando el matchmaking nativo. El resultado del FT requiere confirmación coincidente de ambos clientes; los envíos repetidos no duplican avances. El anfitrión puede resolver bajas por WO.
-- Prueba Todos contra mí: tú y tres bots con sus propias instancias e inputs programados. Tres sets consecutivos, FT configurable y sin eliminación. Se crea desde el menú. No son bots de inteligencia artificial avanzada.
-- Durante la espera se puede abrir la ventana de un bot para ver el combate local. No es el espectador online por replay, que continúa pendiente.
-- Los bots mantienen sus propias copias de saves y solo se cierran procesos auxiliares creados por la prueba. Los logs de cada bot se conservan en logs/tournament-lab.
-- La lista de personajes es declarativa; todavía no bloquea elecciones fuera de esa lista en la selección del combate.
-- El servicio público de códigos cortos para salas BTC sigue pendiente de desarrollo y despliegue. Las salas de esta prueba se alojan localmente; los códigos nativos de cada combate se mantienen.
-
-## Funciones conservadas
-
-- Corrige el descriptor de los modelos embebidos de efectos: el tamaño fijo 32 que usa el decomp ya no se confunde con la longitud del archivo. Se recupera un límite dentro de la asignación activa de memoria antes de llamar al constructor original. La traza reportada del ataque 1 de Androide 16 fallaba en esta ruta al quedar vacío el puntero del modelo. El usuario repitió el ataque con esta versión y confirmó que funcionó sin el cierre reportado.
-- **FT1 a FT5** en F1 → Online → Host → Primero a (FT). El anfitrión lo elige antes de conectar y ambos reciben el mismo objetivo. Sin FT conserva las partidas libres. La búsqueda rápida no usa este FT privado.
-- El primero en alcanzar las victorias elegidas gana el set. Los empates no suman victorias. El marcador se congela, muestra **GG y el ganador en grande** durante unos segundos y termina la sesión online de ambos mediante la salida nativa.
-- La selección de personajes muestra el nombre del rival conectado.
-- Botón **Buscar actualizaciones** en el Loader: vuelve a consultar GitHub sin reiniciar. Instalar una actualización sigue reiniciando únicamente el Loader.
-- Para compartir el FT, ambos jugadores deben usar la misma versión del Loader con las mismas reglas y datos.
-- La ventana bloquea arrastre, redimensionado, menú de sistema y F11 durante el online. Al terminar la sesión recupera su comportamiento normal; cerrar el juego sigue disponible.
-- Aviso con las mejoras de la versión al abrirla por primera vez, también después de actualizar. El registro del Loader muestra las notas de GitHub al iniciar una actualización.
-- Corrección de la inicialización en cero de los parches nativos.
-- Marcador online permanente con nombres y victorias de cada jugador. Se conserva durante selección de personajes, peleas y revanchas; se reinicia al terminar la sesión.
-- Los resultados esperan la confirmación de los inputs nativos. Los fotogramas repetidos por rollback no duplican victorias. Los empates se muestran aparte y los abortos no suman.
-- Cada cambio confirmado queda en online.log como `net: score confirmed`, con tick y totales P1/P2/empates.
-- Interfaz para jugar con el perfil actualizado: reglas competitivas, chat y pausa oficiales del decomp.
-- Tiempos online 180, 240, 360 y 480 segundos; sin límite conserva su comportamiento.
-- Correcciones del vídeo de apertura y del audio AFS2. El audio no modifica el contador lógico de la sesión online.
-- Consulta GitHub antes de jugar e instala automáticamente publicaciones del decomp que superen la validación de compatibilidad. Esta versión admite el ejecutable revisado de v0.1.35.2. Si una publicación futura cambia, conserva la instalación funcional y deja el motivo en el registro; puede requerir un nuevo Loader.
-- Registros locales separados por sesión: local.log, online.log, session.json y patch.log; recoge el informe nativo bt3_crash.txt si se genera. Logs con rotación de tamaño. No se suben automáticamente.
-- Registra código de salida, versiones y hashes del decomp, payload y memory para investigar cierres, incompatibilidades y desyncs. Un log no identifica por sí solo la causa de toda desincronización.
-
-Extrae el ZIP en una carpeta propia y abre **Competitive Loader.exe**. Para la primera instalación elige tu ISO competitiva y, opcionalmente, tu memory PCSX2. No incluye archivos del juego. Ambos jugadores deben usar las mismas versiones y la misma memory. Mantén el Loader abierto durante el juego para guardar registros y proteger la memory online.
-
-Tab abre el chat oficial. El botón **Abrir registros locales y online** muestra la carpeta de la sesión actual. El marcador se muestra arriba durante toda la sesión online. Durante el online la ventana queda protegida frente a movimiento y cambios de tamaño.
-
-Las correcciones y las pruebas de arranque/local no sustituyen la validación online prolongada. La prueba online inicial está descrita en TEST-RESULTS.md; las revisiones de audio y tiempos requieren más partidas reales.
+Las partidas normales usan Dragon Net Battle con Host / Quick match / Join.

@@ -25,8 +25,6 @@ int SDL_snprintf(char *, size_t, const char *, ...);
 extern "C" int ScoreLog(FILE *, const char *, ...) __asm__("fprintf");
 #include "competitive_window.cpp"
 #include "competitive_ft.cpp"
-#include "competitive_room.cpp"
-#include "competitive_replay_view.cpp"
 
 static ScoreTracker tracker;
 static int scoreLock;
@@ -55,7 +53,6 @@ extern "C" void Competitive_ScoreBeginTick(unsigned tick) {
         ScoreLog(stderr, "net: FT complete target=%u winner=P%u; GG; leaving session\n", tracker.target, tracker.setWinner);
         Port_NetLeave(); // Native goodbye/restore path; never called under the observer lock.
     }
-    if (InterlockedExchange(&risingLeaveRequested, 0) && online) Port_NetLeave();
 }
 
 extern "C" void Competitive_ScoreSessionBegin(int role, const char *address, int port) {
@@ -98,8 +95,6 @@ extern "C" void Competitive_ScoreRender(void) {
     a = tracker.wins[0]; b = tracker.wins[1]; draws = tracker.draws;
     target = tracker.target; winner = tracker.setWinner;
     SDL_UnlockSpinlock(&scoreLock);
-    risingTournamentPump(a, b, winner, target);
-    risingSocialDraw();
     if (show) {
         const int me = Port_NetMe() == 1 ? 1 : 0;
         const char *left = Port_NetName(me), *right = Port_NetName(1 - me);
@@ -113,7 +108,6 @@ extern "C" void Competitive_ScoreRender(void) {
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
                 ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoSavedSettings)) {
             ImGui::TextUnformatted(text);
-            if(SDL_getenv("BTC_LOCAL_SPECTATOR")) ImGui::TextUnformatted("ESPECTADOR LOCAL | P1 / P2 | 180 segundos");
             if (target) {
                 SDL_snprintf(text, sizeof(text), "FT%u", target);
                 ImGui::TextUnformatted(text);
@@ -172,15 +166,13 @@ static bool needs_score_frame(unsigned before) {
     SDL_UnlockSpinlock(&scoreLock);
     // Native UI skips its frame when no menu, notice or meter is visible.
     // Build our own frame only in that case, after both backends are ready.
-    return (active || risingModeActive || risingState.connected || risingBracketOpen) && before == renderedFrames && ImGui::GetCurrentContext() &&
+    return active && before == renderedFrames && ImGui::GetCurrentContext() &&
            ImGui::GetIO().BackendRendererUserData && ImGui::GetIO().BackendPlatformUserData;
 }
 
 extern "C" void Competitive_ScoreDraw(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target) {
     const unsigned before = renderedFrames;
-    risingUiEnter();
     Ui_Draw(cmd, target);
-    risingUiLeave();
     if (needs_score_frame(before)) {
         ImGui_ImplSDLGPU3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -193,9 +185,7 @@ extern "C" void Competitive_ScoreDraw(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture 
 
 extern "C" void Competitive_ScoreDrawGL(void) {
     const unsigned before = renderedFrames;
-    risingUiEnter();
     Ui_DrawGL();
-    risingUiLeave();
     if (needs_score_frame(before)) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL3_NewFrame();

@@ -1,6 +1,6 @@
 # Compatibility review: Tenkaichi3Decomp 0.1.35.4
 
-The 1.5.7 candidate supports the official Windows x64 executables for 0.1.35.2
+The 1.5.9 public build supports the official Windows x64 executables for 0.1.35.2
 and 0.1.35.4. New installations and engine updates fetch 0.1.35.4. Both players
 must use the same engine, Loader and competitive save.
 
@@ -22,9 +22,9 @@ unchanged. The net menu's hooked functions and the signatures of `Ui_Draw`,
 is reached through the original drawing functions.
 
 The audio end-marker and borrowed effect-model fixes remain necessary: those
-upstream sources have not changed. Competitive timer choices, FT, score and
-tournament features remain Loader extensions. No native object rebuild or new
-fixed executable addresses is necessary for this release.
+upstream sources have not changed. Competitive timer choices, FT and score remain Loader extensions. The public
+score object was rebuilt without room, tournament, bot or spectator code.
+The original online menu, main menu, chat and controller functions are untouched.
 
 ## Checks performed before launch
 
@@ -37,7 +37,7 @@ the payload also verifies its imports and relocations. Launch still verifies
 every memory write before resuming the game. The log includes the engine version
 and hook coverage.
 
-Both binaries resolve all 43 hooks (17 entry replacements and 26 wrappers), all
+Both binaries resolve all 31 hooks (17 entry replacements and 14 wrappers), all
 four timer labels and every payload import. This check is reproducible:
 
 ```powershell
@@ -51,22 +51,15 @@ not claim a completed gameplay test.
 
 ## Runtime validation
 
-The 76 local tests passed, including native audio/effect/FT/timer/replay tests
-and the new hook-contract and independent-plan regression cases. An isolated
-0.1.35.4 process recorded a CPU/CPU replay; an isolated GPU replay process also
-started and rendered a frame without crashing. A 90-second localhost run with
-two 0.1.35.4 processes, rollback 8 and scripted menu/combat input produced 5,964
-common blanks, including 3,448 common fight blanks, with no observed fight-state
-differences and no native desync report. Timed shutdown can leave buffered log
-tails; this finite run does not prove all moves or Internet conditions safe.
-The first harness attempt sent combat/cancel input during character selection
-and ended without a fight; the successful run waits for menu selection before
-sending attacks. An isolated transactional update from 0.1.35.2 to 0.1.35.4
-also passed, preserving the competitive save and settings. The frozen Loader
-passed its startup, service and compatibility checks against both engines.
-Automated UI helpers did not reach the tournament entry during their timed
-startup checks; tournament UI validation and further tournament work are
-deferred. Manual regression of Android 16's specific attack remains pending.
+The public build passes 43 tests, including native audio/effect/FT/timer/score
+regressions, update checks under API rate limits, binary hook checks and public
+payload exclusions. The full experimental implementation and its tests were
+saved locally outside the repository before removal. The public package rejects
+experimental Python modules and native symbols during every build.
+The earlier 0.1.35.4 ABI and transactional-upgrade checks remain applicable;
+network testing for the smaller public payload is recorded in TEST-RESULTS.md.
+Manual regression of Android 16's specific attack and prolonged Internet
+validation remain pending for this build.
 
 ## Future versions
 

@@ -1,39 +1,33 @@
-# Dragon Ball Z Budokai Tenkaichi — Competitive Edition
+# Competitive Loader
 
-Repositorio de **Competitive Loader**, la aplicación de Universo Tenkaichi para instalar y ejecutar Competitive Edition sobre una publicación oficial de Tenkaichi3Decomp.
+Loader publico para jugar Competitive Edition con Tenkaichi3Decomp. Compatible con **0.1.35.4** y **0.1.35.2**.
 
-El proyecto no incluye la ISO ni archivos del juego. Cada usuario debe proporcionar su propia copia de Competitive Edition.
+[Descargar la ultima version](https://github.com/SoulSeiya/Competitive-Loader-Releases/releases/latest)
 
-## Código y compilación
+## Funciones de juego
 
-El código de la aplicación está en [`CompetitiveLoader`](CompetitiveLoader). En Windows, desde esa carpeta:
+- Dragon Net Battle original: Host, Quick match, Join y codigos para partidas de dos jugadores.
+- FT1 a FT5, marcador persistente, rival conectado y GG al terminar el set.
+- Tiempos BTC de 180, 240, 360 y 480 segundos, mas sin limite.
+- Correcciones de intro, audio y modelos de efectos.
+- Chat original con Tab y bloqueo de movimiento de ventana durante el online.
+- Logs locales y online para investigar crashes y desincronizaciones.
+- Busqueda de actualizaciones con cache y alternativa publica cuando GitHub limita su API.
 
-```powershell
-.\build.ps1
-```
+## Instalacion
 
-El paquete final queda en:
+Extrae el ZIP y abre `Competitive Loader.exe`. Necesitas tu propia ISO competitiva y memory compatible. Ambos jugadores deben usar las mismas versiones y datos. Conserva `CompetitiveRuntime` y `competitive_loader.json` al actualizar.
 
-```text
-CompetitiveLoader\release\CompetitiveLoader-windows-x64.zip
-```
+El repositorio y el paquete no incluyen ISO, memory ni datos extraidos del juego.
+Las salas, torneos, bots y espectadores experimentales se mantienen fuera de la distribucion y del codigo actual de main.
 
-## Publicar una actualización
+## Desarrollo y comprobaciones
 
-1. Cambia `APP_VERSION` en `CompetitiveLoader/competitive_loader.py`.
-2. Actualiza `CompetitiveLoader/assets/version_info.txt` con la misma versión.
-3. Confirma y sube los cambios a `main`.
-4. Crea y sube una etiqueta con el mismo número, por ejemplo:
+`build.ps1` construye el paquete y verifica que no contenga modulos ni parches experimentales. GitHub Actions ejecuta las pruebas y el empaquetado en main. Las Releases se publican desde versiones verificadas.
 
-```powershell
-git tag v1.0.0
-git push origin v1.0.0
-```
+- [Funciones e instalacion](README.txt)
+- [Notas de version](RELEASE-NOTES.md)
+- [Revision de compatibilidad del decomp](docs/decomp-0.1.35.4.md)
+- [Matchmaking propio de dos jugadores](service/cloudflare-matchmaking/README.md)
 
-GitHub Actions construirá la aplicación, creará la Release y adjuntará exactamente `CompetitiveLoader-windows-x64.zip`. Al abrirse, las instalaciones v1 o posteriores detectarán esa Release, la instalarán automáticamente y se reiniciarán. Las versiones 0.16 y 0.17 muestran un botón para realizar la migración inicial a v1.
-
-## Créditos
-
-- Recomp: **z3xox**
-- Competitive Loader: **Rising**
-
+Los ensayos locales no sustituyen las partidas prolongadas entre equipos reales.

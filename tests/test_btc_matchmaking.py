@@ -27,10 +27,3 @@ class MatchmakingTests(unittest.TestCase):
         with patch.object(gui.core,"load_config",return_value={"runtime":"keep"}),patch.object(gui.core,"save_config") as save,patch.object(gui.simpledialog,"askstring",return_value="https://btc.example.workers.dev"):
             app.configure_matchmaking()
         self.assertEqual(save.call_args.args[0],{"runtime":"keep","btc_matchmaking_url":"https://btc.example.workers.dev"})
-
-    def test_room_service_dialog_preserves_runtime(self):
-        import competitive_release_gui as gui
-        app=gui.ReleaseApp.__new__(gui.ReleaseApp);app.root=Mock();app.busy=False;app.session=None;app._append=Mock()
-        with patch.object(gui.core,"load_config",return_value={"runtime":"keep"}),patch.object(gui.core,"save_config") as save,patch.object(gui.simpledialog,"askstring",return_value="https://btc-test.trycloudflare.com/"):
-            app.configure_room_service()
-        self.assertEqual(save.call_args.args[0],{"runtime":"keep","btc_room_service_url":"https://btc-test.trycloudflare.com"})

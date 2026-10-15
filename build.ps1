@@ -20,12 +20,14 @@ if (-not $SkipDependencyInstall) {
 & $Python -m PyInstaller --noconfirm --clean --distpath $Dist --workpath $Work $Spec
 if ($LASTEXITCODE -ne 0) { throw "No se pudo construir Competitive Loader.exe." }
 
+& $Python (Join-Path $Project "tools\check_public_package.py")
+if ($LASTEXITCODE -ne 0) { throw "El paquete público contiene código experimental." }
+
 Remove-Item -LiteralPath $Archive -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $Package -Force | Out-Null
 try {
     Copy-Item -LiteralPath (Join-Path $Dist "Competitive Loader.exe") -Destination $Package
     Copy-Item -LiteralPath (Join-Path $Project "README.txt") -Destination $Package
-    Copy-Item -LiteralPath (Join-Path $Project "RISING-BATTLE.md") -Destination $Package
     Copy-Item -LiteralPath (Join-Path $Project "licenses") -Destination (Join-Path $Package "licenses") -Recurse
     Compress-Archive -Path (Join-Path $Package "*") -DestinationPath $Archive -CompressionLevel Optimal
 }
