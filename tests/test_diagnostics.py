@@ -17,6 +17,23 @@ class Response(io.BytesIO):
 
 
 class DiagnosticsTests(unittest.TestCase):
+    def test_fast_game_exit_is_not_overwritten_as_completed_operation(self):
+        previous_profile = core.RELEASE_PROFILE
+        self.addCleanup(setattr, core, "RELEASE_PROFILE", previous_profile)
+        import competitive_release_gui as gui
+        app = gui.ReleaseApp.__new__(gui.ReleaseApp)
+        app.busy = False
+        app.session = None
+        app._runtime = lambda: Path("runtime")
+        diagnostic = mock.Mock()
+        diagnostic.running = False
+        diagnostic.summary = {"pid": 123, "status": "abnormal_exit"}
+        with (mock.patch.object(gui, "SessionDiagnostics", return_value=diagnostic),
+              mock.patch.object(gui.CompetitiveApp, "_run", autospec=True,
+                                side_effect=lambda self, label, success, action: action())):
+            app._run("Jugar", "Iniciado", lambda: 123)
+        diagnostic.finish.assert_not_called()
+
     def test_network_and_local_logs_and_desync_summary(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

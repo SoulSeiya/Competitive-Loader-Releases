@@ -55,7 +55,7 @@ class ReleaseApp(CompetitiveApp):
         def recorded_action():
             try:
                 result = action()
-                if not diagnostic.running:
+                if "pid" not in diagnostic.summary:
                     diagnostic.finish("completed")
                 return result
             except Exception as exc:
