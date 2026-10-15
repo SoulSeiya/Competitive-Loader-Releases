@@ -18,18 +18,32 @@ class User(C.Structure):
     _fields_ = [("id", C.c_uint32), ("flags", C.c_uint32), ("name", C.c_char * 65)]
 
 
+class Match(C.Structure):
+    _fields_ = [(k, C.c_uint32) for k in ("id", "round", "p1", "p2", "winner", "status", "score1", "score2", "confirmations", "bots")] + [
+        ("name1", C.c_char * 65), ("name2", C.c_char * 65), ("code", C.c_char * 8)]
+
+
+class TournamentState(C.Structure):
+    _fields_ = [(k, C.c_uint32) for k in ("status", "ft", "characters", "enrolled", "self_enrolled", "role", "current", "champion", "count", "revision", "mode")] + [
+        ("id", C.c_char * 65), ("title", C.c_char * 97), ("champion_name", C.c_char * 65),
+        ("roster", C.c_char * 257), ("matches", Match * 31)]
+
+
 class State(C.Structure):
     _fields_ = [("connected", C.c_uint32), ("self_id", C.c_uint32), ("host_id", C.c_uint32),
                 ("count", C.c_uint32), ("chat_count", C.c_uint32), ("capacity", C.c_uint32),
                 ("title", C.c_char * 97), ("address", C.c_char * 129),
                 ("notice", C.c_char * 257), ("key", C.c_char * 65),
-                ("users", User * 32), ("chat", (C.c_char * 385) * 64), ("invite", C.c_char * 385)]
+                ("users", User * 32), ("chat", (C.c_char * 385) * 64), ("invite", C.c_char * 385),
+                ("tournament", TournamentState)]
 
 
 class Command(C.Structure):
     _fields_ = [("op", C.c_uint32), ("target", C.c_uint32), ("port", C.c_uint32),
                 ("capacity", C.c_uint32), ("name", C.c_char * 65), ("title", C.c_char * 97),
-                ("address", C.c_char * 129), ("key", C.c_char * 65), ("text", C.c_char * 385)]
+                ("address", C.c_char * 129), ("key", C.c_char * 65), ("text", C.c_char * 385),
+                ("ft", C.c_uint32), ("characters", C.c_uint32), ("score1", C.c_uint32), ("score2", C.c_uint32),
+                ("tournament_id", C.c_char * 65)]
 
 
 class Shared(C.Structure):
@@ -48,16 +62,19 @@ def decoded(value):
 
 
 class RoomBridge:
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, client=None, preserve_membership=False):
         self.name = "Local\\BTC-RisingBattle-" + secrets.token_hex(16)
         self.memory = mmap.mmap(-1, C.sizeof(Shared), tagname=self.name)
         self.shared = Shared.from_buffer(self.memory)
-        self.shared.magic, self.shared.version = MAGIC, 2
+        self.shared.magic, self.shared.version = MAGIC, 4
         self.log = logger or logging.getLogger("competitive.room")
-        self.client = None
+        self.client = client
+        self.preserve_membership = preserve_membership
+        self.runtime = None
+        self.game_bots = None
         self.server = None
         self.bots = None
-        self.snapshot = None
+        self.snapshot = client.send("poll") if client else None
         try:
             self.local_address = socket.gethostbyname(socket.gethostname())
         except OSError:
@@ -84,20 +101,43 @@ class RoomBridge:
             state.count = len(s["users"])
             for i, user in enumerate(s["users"]):
                 state.users[i].id = user["id"]
-                state.users[i].flags = int(bool(user["ready"])) | (2 if user.get("bot") else 0)
+                state.users[i].flags = int(bool(user["ready"])) | (2 if user.get("bot") else 0) | (4 if user.get("game_bot") else 0)
                 state.users[i].name = encoded(user["name"], 65)
             state.chat_count = len(s["messages"])
             for i, message in enumerate(s["messages"]):
                 state.chat[i].value = encoded(message["author"] + ": " + message["text"], 385)
+            t = s.get("tournament")
+            if t:
+                dst = state.tournament
+                dst.status = {"registration": 0, "running": 1, "finished": 2}[t["status"]]
+                for key in ("ft", "characters", "enrolled", "role", "current", "champion", "revision"):
+                    setattr(dst, key, t[key])
+                dst.self_enrolled = int(t["self_enrolled"])
+                dst.mode = int(t.get("mode") == "all_vs_host")
+                dst.id, dst.title = encoded(t["id"], 65), encoded(t["title"], 97)
+                dst.champion_name = encoded(t["champion_name"], 65)
+                dst.roster = encoded(", ".join(t["self_roster"]), 257)
+                dst.count = len(t["matches"])
+                for i, match in enumerate(t["matches"]):
+                    row = dst.matches[i]
+                    for key in ("id", "round", "p1", "p2", "winner", "confirmations"):
+                        setattr(row, key, match[key] or 0)
+                    row.status = {"pending": 0, "active": 1, "done": 2}[match["state"]]
+                    row.score1, row.score2 = match["score"] or [0, 0]
+                    row.bots = (1 if match["bots"] and not match.get("playable", False) else 0) | (2 if match["bots"] and match.get("playable") else 0)
+                    row.name1, row.name2, row.code = encoded(match["name1"], 65), encoded(match["name2"], 65), encoded(match["code"], 8)
         self.shared.state_seq += 1
         self.shared.state = state
         self.shared.state_seq += 1
 
     def _leave(self):
+        if self.game_bots:
+            self.game_bots.close()
+            self.game_bots = None
         if self.bots:
             self.bots.close()
             self.bots = None
-        if self.client:
+        if self.client and not self.preserve_membership:
             try:
                 self.client.send("leave")
             except RoomError:
@@ -112,6 +152,34 @@ class RoomBridge:
 
     def _execute(self, command):
         op = command.op
+        if op == 19:
+            if self.client:
+                raise RoomError("Sal de la sala actual para preparar la prueba")
+            if not self.runtime:
+                raise RoomError("Inicia el juego desde el Loader para preparar los bots de combate")
+            from rising_game_bots import GameBotProcesses
+            self.server = RoomServer("Prueba BTC: tu + 3 bots", decoded(command.name) or "UT Rising", 0, 4, bind="127.0.0.1")
+            self.client = RoomClient("127.0.0.1", self.server.port, self.server.room.host_token)
+            self.address = f"127.0.0.1:{self.server.port} (prueba local)"
+            self.key = self.server.room.key
+            self.invite = make_invite("127.0.0.1", self.server.port, self.key)
+            self.snapshot = self.client.send("tournament_config", title="Todos contra mi - prueba BTC", ft=1, characters=1)
+            self.snapshot = self.client.send("tournament_register", roster=["Libre (prueba)"])
+            self.bots = RoomBots(self.server, game_bots=True)
+            if self.bots.add(3) != 3:
+                raise RoomError("No se pudieron registrar los tres bots")
+            with self.server.room.lock:
+                self.server.room.tournament.prepare_challenge(self.server.room.host_id)
+            self.game_bots = GameBotProcesses(self.server, self.bots, self.runtime, self.log)
+            self.snapshot = self.client.send("poll")
+            self.notice = "Cuatro inscritos: tu y tres bots de combate. Todos contra ti, incluso si pierdes un set. Elige FT y pulsa Iniciar prueba."
+            return
+        if op == 20:
+            if not self.game_bots:
+                raise RoomError("La vista local solo esta disponible en la prueba de bots de este equipo")
+            self.game_bots.focus()
+            self.notice = "Vista local de un bot. Es otra ventana del juego; no es el espectador online por replay."
+            return
         if op in (1, 2, 9):
             if self.client:
                 raise RoomError("Sal de la sala actual antes de cambiar")
@@ -152,6 +220,20 @@ class RoomBridge:
                 self.log.info("ROOM_KICK target=%s", command.target)
             elif op == 6:
                 self.snapshot = self.client.send("ready")
+            elif 10 <= op <= 17:
+                tid, mid = decoded(command.tournament_id), command.target
+                operations = {
+                    10: ("tournament_config", dict(title=decoded(command.title), ft=command.ft, characters=command.characters)),
+                    11: ("tournament_withdraw" if command.target else "tournament_register",
+                         {} if command.target else dict(roster=[s.strip() for s in decoded(command.text).split(",") if s.strip()])),
+                    12: ("tournament_start", {}), 13: ("tournament_simulate", {}), 14: ("tournament_reset", {}),
+                    15: ("tournament_report", dict(tournament_id=tid, match=mid, score=[command.score1, command.score2])),
+                    16: ("tournament_wo", dict(target=mid)),
+                    17: ("tournament_code", dict(tournament_id=tid, match=mid, code=decoded(command.text))),
+                }
+                operation, values = operations[op]
+                self.snapshot = self.client.send(operation, **values)
+                self.log.info("ROOM_TOURNAMENT op=%s revision=%s", operation, self.snapshot["tournament"]["revision"])
             elif op in (7, 8):
                 if not self.server:
                     raise RoomError("Solo el anfitrión puede gestionar los bots")
@@ -188,7 +270,7 @@ class RoomBridge:
                     except (RoomError, OSError, ValueError, KeyError, TypeError) as exc:
                         self.notice = str(exc)
                         self.log.warning("ROOM_COMMAND_FAILED op=%s reason=%s", command.op, self.notice)
-                        if command.op in (1, 2, 9):
+                        if command.op in (1, 2, 9, 19):
                             self._leave()
                     self.shared.ack_seq = seq
                     self._publish()

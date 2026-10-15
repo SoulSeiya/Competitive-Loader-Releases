@@ -36,7 +36,7 @@ class ReleaseApp(CompetitiveApp):
                      "Marcador online persistente entre peleas y revanchas.\n"
                      "Las actualizaciones del decomp se validan antes de instalarlas.\n"
                      "Ambos jugadores necesitan el mismo Loader, decomp y memory.\n")
-        if "--smoke-test" not in sys.argv:
+        if "--smoke-test" not in sys.argv and "--tournament-test" not in sys.argv:
             root.after(600, self.show_version_notes)
 
     def show_version_notes(self):
@@ -105,7 +105,10 @@ class ReleaseApp(CompetitiveApp):
                     print("[AVISO] No se pudo instalar una actualización compatible; se comprobará la copia instalada.")
                 image = core.validate_payload(core.PAYLOAD, exe)
                 image.build(0x60000000, image.pe.preferred_base)
-                return self.session.launch(exe, image, env={"BTC_ROOM_BRIDGE": self.room_bridge.name})
+                self.room_bridge.runtime = runtime
+                env = {"BTC_ROOM_BRIDGE": self.room_bridge.name}
+                pid = self.session.launch(exe, image, env=env)
+                return pid
             self._run("Comprobando actualizaciones e iniciando Competitive",
                       "Competitive iniciado. Mantén el Loader abierto mientras juegas.", launch)
             return
@@ -124,6 +127,7 @@ class ReleaseApp(CompetitiveApp):
                 core.import_ps2_card(Path(card), runtime)
             image = core.validate_payload(core.PAYLOAD, prepared)
             image.build(0x60000000, image.pe.preferred_base)
+            self.room_bridge.runtime = prepared.parent
             return self.session.launch(prepared, image, env={"BTC_ROOM_BRIDGE": self.room_bridge.name})
         self._run("Preparando la instalación competitiva", "Instalación lista y Competitive iniciado.", install)
 
@@ -160,11 +164,15 @@ def main():
         app.room_bridge.close()
         root.destroy()
     else:
+        if "--tournament-test" in sys.argv: root.after(200, app.play)
         root.mainloop()
 
 
 if __name__ == "__main__":
-    if "--smoke-room" in sys.argv:
+    if "--tournament-bot-worker" in sys.argv:
+        from rising_game_bots import run_worker
+        run_worker(sys.argv[sys.argv.index("--tournament-bot-worker") + 1])
+    elif "--smoke-room" in sys.argv:
         from rising_room import smoke_test
         smoke_test()
     elif "--apply-loader-update" in sys.argv:

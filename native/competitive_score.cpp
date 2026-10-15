@@ -54,6 +54,7 @@ extern "C" void Competitive_ScoreBeginTick(unsigned tick) {
         ScoreLog(stderr, "net: FT complete target=%u winner=P%u; GG; leaving session\n", tracker.target, tracker.setWinner);
         Port_NetLeave(); // Native goodbye/restore path; never called under the observer lock.
     }
+    if (InterlockedExchange(&risingLeaveRequested, 0) && online) Port_NetLeave();
 }
 
 extern "C" void Competitive_ScoreSessionBegin(int role, const char *address, int port) {
@@ -96,6 +97,7 @@ extern "C" void Competitive_ScoreRender(void) {
     a = tracker.wins[0]; b = tracker.wins[1]; draws = tracker.draws;
     target = tracker.target; winner = tracker.setWinner;
     SDL_UnlockSpinlock(&scoreLock);
+    risingTournamentPump(a, b, winner, target);
     if (show) {
         const int me = Port_NetMe() == 1 ? 1 : 0;
         const char *left = Port_NetName(me), *right = Port_NetName(1 - me);
@@ -167,7 +169,7 @@ static bool needs_score_frame(unsigned before) {
     SDL_UnlockSpinlock(&scoreLock);
     // Native UI skips its frame when no menu, notice or meter is visible.
     // Build our own frame only in that case, after both backends are ready.
-    return active && before == renderedFrames && ImGui::GetCurrentContext() &&
+    return (active || risingModeActive || risingState.connected) && before == renderedFrames && ImGui::GetCurrentContext() &&
            ImGui::GetIO().BackendRendererUserData && ImGui::GetIO().BackendPlatformUserData;
 }
 

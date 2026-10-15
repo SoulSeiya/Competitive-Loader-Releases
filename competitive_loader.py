@@ -29,10 +29,14 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 4, 1)
+APP_VERSION = (1, 5, 0)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "• Rising Battle en la entrada Tenkaichi Budokai Online: torneos BTC de 2 a 32 inscritos.\n"
+    "• Temática, FT1–FT5, inscripción y bracket con pases libres y anuncios de cruces.\n"
+    "• Prueba Todos contra mí: tú y tres bots, tres sets consecutivos sin eliminación.\n"
+    "• Vista local de la ventana de un bot; el espectador online por replay sigue pendiente.\n"
     "• Bots de prueba para llenar salas, probar chat, listo y expulsiones.\n"
     "• Invitación BTC1: copiar un código para entrar a la sala.\n"
     "• Pruebas de salas BTC: panel de desarrollo accesible desde F1.\n"
@@ -175,6 +179,9 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
         CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
     if session_score:
         CALL_WRAPPERS["competitive_score.o"] = {
+            "MainMenu_Run": "Competitive_RisingMainMenu",
+            "Port_PadRead": "Competitive_BotPadRead",
+            "PortTbo_Run": "Competitive_TournamentMode",
             "_ZL9build_netv": "Competitive_RisingMenu",
             "_ZN5ImGui5BeginEPKcPbi": "Competitive_RisingBegin",
             "Ui_Event": "Competitive_RisingEvent",

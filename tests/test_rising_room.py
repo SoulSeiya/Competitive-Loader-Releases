@@ -104,7 +104,7 @@ class RoomTests(unittest.TestCase):
 class BridgeTests(unittest.TestCase):
     def test_shared_memory_two_loaders_chat_ready_and_expulsion(self):
         from rising_room_bridge import RoomBridge, Shared, Command, State, User, decoded
-        self.assertEqual([C.sizeof(t) for t in (User, State, Command, Shared)], [76, 28032, 760, 28812])
+        self.assertEqual([C.sizeof(t) for t in (User, State, Command, Shared)], [76, 34140, 844, 35004])
         # Bind only loopback for the real HTTP server in this test.
         from unittest.mock import patch
         import rising_room_bridge as bridge_module

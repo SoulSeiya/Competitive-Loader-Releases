@@ -5,9 +5,10 @@ from rising_room import PROTOCOL, RoomClient, RoomError
 
 
 class RoomBots:
-    def __init__(self, server, cycle=12):
+    def __init__(self, server, cycle=12, game_bots=False):
         self.server = server
         self.cycle = cycle
+        self.game_bots = game_bots
         self.lock = threading.Lock()
         self.users = []
         self.number = 0
@@ -22,13 +23,15 @@ class RoomBots:
             self.number += 1
             client = RoomClient("127.0.0.1", self.server.port, self.server.room.host_token)
             try:
-                state = client.send("join", name=f"Bot BTC {self.number:02}", bot=True,
+                state = client.send("join", name=f"Bot BTC {self.number:02}", bot=True, game_bot=self.game_bots,
                                     key=self.server.room.key, protocol=PROTOCOL, edition="BTC")
                 user = dict(client=client, id=state["self_id"], next=time.monotonic()+self.cycle)
                 with self.lock:
                     self.users.append(user)
                 client.send("ready")
                 client.send("chat", text="Bot de prueba conectado. Puedes expulsarme para probar la sala.")
+                if state.get("tournament", {}).get("status") == "registration":
+                    client.send("tournament_register", roster=["Personaje de prueba"])
                 added += 1
             except RoomError:
                 break  # Full room, duplicate name, closure: no retry/rejoin loop.
@@ -41,7 +44,10 @@ class RoomBots:
             for user in users:
                 if self.stop.is_set(): break
                 try:
-                    user["client"].send("poll")
+                    state = user["client"].send("poll")
+                    tournament = state.get("tournament", {})
+                    if tournament.get("status") == "registration" and not tournament.get("self_enrolled"):
+                        user["client"].send("tournament_register", roster=["Personaje de prueba"])
                     if time.monotonic() >= user["next"]:
                         user["client"].send("ready")
                         user["next"] = time.monotonic() + self.cycle

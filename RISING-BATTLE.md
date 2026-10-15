@@ -1,36 +1,39 @@
-# Rising Battle 1.4.1 — desarrollo
+# Rising Battle 1.5.0 — prueba de cuatro
 
-Dragon Net Battle conserva su entrada, ventana y códigos originales. La ruta normal vuelve al menú nativo; el panel provisional se abre solo desde **F1 → Pruebas de sala BTC (desarrollo)**. La versión de prueba 1.4.0 sustituyó ese menú por una interpretación incorrecta de la petición.
+## Iniciar la prueba
 
-El modo que se debe adaptar es **Tenkaichi Budokai Online**, implementado en src/menu/port_tbo.c del decomp. Tb_Vanilla comprueba los datos originales del disco y bloquea ediciones modificadas. Su adaptación a los torneos BTC sigue pendiente. No se ha desactivado globalmente esa validación.
+La entrada **Tenkaichi Budokai Online** del menú principal abre ahora Rising Battle en pantalla completa. Dragon Net Battle conserva su ventana, Host/Join, FT y códigos. Se adapta únicamente la entrada del modo PC TBO del ejecutable revisado; no se desactiva globalmente la comprobación de datos originales.
 
-## Probar bots y salas
+Para la prueba preparada, abre **Prueba torneo de 4.bat** junto al Loader. Usa un runtime humano aislado, con una copia de tu save competitivo. Entra por **Tenkaichi Budokai Online** y pulsa **Crear prueba: tu + 3 bots, todos contra mi**. Se inscriben cuatro participantes y se propone FT1. Puedes cambiar nombre y FT, guardar las reglas y pulsar **Iniciar prueba**.
 
-Crea una sala con nombre, capacidad 2–32 y puerto TCP (7001 por defecto). El anfitrión dispone de **Añadir 1 bot de prueba**, **Llenar con bots** y **Retirar bots**. Los bots usan sesiones HTTP reales, aparecen como BOT, escriben un mensaje y alternan listo/esperando. Pueden expulsarse y no se reconectan solos. No controlan personajes ni simulan latencia externa.
+La modalidad de laboratorio **Todos contra mí** programa tres sets consecutivos, uno contra cada bot. El humano sigue jugando aunque pierda y conserva P1 y el control de los menús. No tiene campeón ni elimina participantes; sirve para probar FT, retorno a sala y cambio de rival. El torneo normal conserva el bracket de eliminación directa con sorteo y pases libres. En cada cruce se conectan solo dos jugadores por el matchmaking nativo. Los bots confirman selecciones y usan entradas programadas de movimiento, golpes y ki. No son IA avanzada ni modifican el daño del juego.
 
-La sala conserva lista, chat, listo y expulsiones del anfitrión. Solo el anfitrión puede añadir bots. Cerrar su sala o el Loader la termina; los miembros caducan sin latido. Expulsar revoca la sesión actual, sin bloquear permanentemente una nueva entrada con invitación válida.
+## Observar mientras esperas
 
-**Abrir Dragon Net Battle** vuelve al menú de combate nativo, sin renombrarlo ni añadir controles a su ventana. La sala sigue conectada mientras el Loader permanezca abierto. Para volver al panel provisional se usa su entrada explícita de F1.
+**Ver combate local de bots (otra ventana)** muestra una instancia propia del bot en este equipo cuando el anfitrión espera en la sala. La prueba Todos contra mí te mantiene como jugador en todos los cruces y no cubre esa espera. Esta función es una vista local de laboratorio, no una tercera conexión de espectador online. El espectador por reproducción de entradas/replay todavía no está implementado.
 
-## Invitación provisional BTC1
+## Torneo y reglas
 
-Revisa **IP / equipo para la invitación** con la dirección local, VPN o un nombre accesible. **Copiar código de sala** copia una invitación que se pega en **Unirse a sala → Entrar con código**. También existe la entrada por IP/puerto/clave.
+El anfitrión configura nombre/temática, FT1–FT5 y máximo de 1–5 personajes por jugador. Cada usuario se inscribe indicando sus personajes separados por comas. La lista se guarda y se valida en la inscripción, pero todavía no restringe la selección real dentro del combate. Cambiar el límite de personajes reinicia las inscripciones.
 
-BTC1 incorpora dirección, puerto y clave, con comprobación de errores de escritura. No publica una sala en Internet, no atraviesa NAT y no es el código corto solicitado. 127.0.0.1 sirve únicamente en el mismo equipo. Entre equipos todavía hace falta red local, VPN o puerto TCP accesible. Para probar combates locales se usan runtimes y memories separados.
+Iniciar torneo cierra las inscripciones y genera un bracket de eliminación directa. El chat anuncia pases, cruces, ganadores y campeón. Cada set avanza al recibir el mismo marcador válido de ambos jugadores; las entregas repetidas son idempotentes. Un resultado contradictorio detiene el avance hasta que los jugadores coincidan o el anfitrión resuelva una baja por WO. Un miembro que sale o es expulsado pierde sus participaciones pendientes por WO. El anfitrión puede cancelar el torneo y abrir nuevas inscripciones.
 
-## Servicio público previsto
+Los bots de sala normales siguen disponibles para simular brackets sin ejecutar combates. **Simular siguiente cruce** se limita a cruces entre dos bots de sala. Los bots de combate se resuelven jugando, no mediante ese botón.
 
-El objetivo es crear sala → recibir código corto → pegarlo en Join. Un servicio central BTC guardará miembros, permisos del anfitrión, chat y posteriormente el torneo. Cloudflare Workers con Durable Objects permite organizarlo; una dirección workers.dev evita necesitar dominio propio. Todavía no hay cuenta, servicio desplegado ni endpoint público configurado.
+## Procesos, memoria y registros
 
-Las salas y el tráfico de las peleas son funciones distintas. Publicar un servicio HTTP por un túnel no sustituye automáticamente el transporte UDP del netplay. No se utiliza el matchmaking público del decomp como si admitiera salas de más de dos jugadores.
+Solo se abren instancias de bots cuando les toca. Cada bot dispone de archivos del runtime y saves propios; sus datos del juego se leen desde la instalación competitiva. Cada worker mantiene su protección de memory en un proceso Python/Loader separado, sin sustituir los handles del usuario. Los auxiliares se asignan a jobs de Windows propios antes de lanzar juegos; cerrar esos jobs no termina juegos ajenos.
 
-Referencias oficiales:
-- https://developers.cloudflare.com/workers/configuration/routing/workers-dev/
-- https://developers.cloudflare.com/durable-objects/best-practices/websockets/
-- https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/protocols/
+Las instancias que acaban un cruce conservan un margen para completar GG/salida nativa antes de retirarse. Un bot que vuelve en otra ronda recibe un workspace nuevo. El anfitrión conserva el control de la sala. Cerrar la sala o el Loader detiene los auxiliares de esa prueba. Los logs, hashes y metadatos de procesos propios quedan en **logs/tournament-lab**; no se suben automáticamente. Esa carpeta puede contener copias de runtime y memory, y está excluida de Git.
+
+## Red y trabajo pendiente
+
+La sala local sigue usando IP/puerto o invitación BTC1, que incorpora dirección, puerto y clave. No es el servicio público de códigos cortos solicitado. En la prueba la sala está en loopback y solo participa este equipo; las peleas usan el matchmaking nativo existente.
+
+El servicio público BTC con código corto, la validación de personajes seleccionados y el espectador online por replay siguen pendientes. No hay cuenta Cloudflare, despliegue ni endpoint público de salas BTC. Workers/Durable Objects es la arquitectura propuesta; workers.dev evita necesitar dominio propio para empezar. No se han probado todavía torneos completos entre varios equipos.
 
 ## Desarrollo
 
-rising_room.py autoriza las operaciones. rising_room_bots.py ejecuta clientes de prueba. rising_invite.py codifica invitaciones. rising_room_bridge.py mantiene la red fuera del hilo de renderizado y comunica ImGui con su Loader mediante memoria compartida por instancia. No añade jugadores al rollback ni escribe el estado de combate.
+rising_tournament.py implementa bracket, circuito de prueba, inscripciones, resultados y bajas; rising_room.py autoriza el protocolo. rising_room_bots.py mantiene miembros de prueba; rising_game_bots.py administra sus procesos reales. El puente ABI 4 comunica estado con ImGui sin hacer red en el hilo de renderizado.
 
-logs/rising-battle.log registra operaciones y errores sin tokens, claves ni texto del chat. Ejecuta python -m unittest discover -s tests -v. build_score.ps1 regenera el objeto nativo. tests/test_room_ui_native.cpp comprueba ImGui, SDL, Windows, la ruta original de Dragon Net Battle y los comandos del puente. --smoke-room comprueba servicio, bots e invitaciones desde el EXE congelado solo en loopback.
+build_score.ps1 regenera el objeto nativo. tests/test_room_ui_native.cpp comprueba frames ImGui, la entrada TBO, Dragon Net Battle, pads de bot, roles, handoff de código y resultados FT mediante dobles del motor. Las pruebas Python cubren el motor, HTTP, puentes y aislamiento de jobs. --smoke-room valida los módulos empaquetados solo en loopback.

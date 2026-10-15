@@ -1,15 +1,14 @@
-# Competitive Loader 1.4.1 — salas BTC (desarrollo)
+# Competitive Loader 1.5.0 — torneo local en validación
 
-- Dragon Net Battle conserva su ventana, controles y códigos originales. La sustitución de su entrada de 1.4.0 fue una interpretación incorrecta de la petición del usuario.
-- Panel provisional: F1 → Pruebas de sala BTC (desarrollo). La adaptación del modo Tenkaichi Budokai Online todavía está pendiente.
-- Bots de prueba por HTTP: añadir, llenar hasta la capacidad de sala y retirar. Prueban chat, listo y expulsiones, sin controlar personajes.
-- Invitación BTC1 con dirección, puerto y clave incorporados. No es un código corto de un directorio público; ese servicio requiere servidor y despliegue propios.
-- Crear y unirse por IP, puerto TCP y clave de invitación; capacidad configurable de 2 a 32 usuarios.
-- Lista compartida de usuarios, estado Listo / Esperando, chat y anuncios de entradas, salidas y expulsiones.
-- Solo el anfitrión puede expulsar. Al cerrar su sala o el Loader, la sala termina para todos.
-- La sala permanece conectada durante los combates. Abrir Dragon Net Battle vuelve a la conexión nativa y conserva FT1–FT5 y las reglas existentes; los jugadores comparten el código de combate por el chat.
-- El anfitrión aloja la sala en su equipo: requiere red local, VPN o puerto TCP accesible. No usa un servidor público ni relay de salas.
-- Torneos, brackets y espectadores quedan para la siguiente etapa. Detalles y pruebas: RISING-BATTLE.md.
+- Tenkaichi Budokai Online abre Rising Battle: sala y torneo BTC. Dragon Net Battle conserva su menú y sus códigos originales.
+- Temática, FT1–FT5 y máximo declarado de 1–5 personajes por inscrito. Inscripción individual y cierre al iniciar el torneo.
+- Bracket de eliminación directa para 2–32 inscritos, con sorteo, pases libres y anuncios de cruces y resultados en el chat.
+- Cada cruce conecta automáticamente a sus dos jugadores usando el matchmaking nativo. El resultado del FT requiere confirmación coincidente de ambos clientes; los envíos repetidos no duplican avances. El anfitrión puede resolver bajas por WO.
+- Prueba Todos contra mí: tú y tres bots con sus propias instancias e inputs programados. Tres sets consecutivos, FT configurable y sin eliminación. Se crea desde el menú. No son bots de inteligencia artificial avanzada.
+- Durante la espera se puede abrir la ventana de un bot para ver el combate local. No es el espectador online por replay, que continúa pendiente.
+- Los bots mantienen sus propias copias de saves y solo se cierran procesos auxiliares creados por la prueba. Los logs de cada bot se conservan en logs/tournament-lab.
+- La lista de personajes es declarativa; todavía no bloquea elecciones fuera de esa lista en la selección del combate.
+- El servicio público de códigos cortos para salas BTC sigue pendiente de desarrollo y despliegue. Las salas de esta prueba se alojan localmente; los códigos nativos de cada combate se mantienen.
 
 ## Funciones conservadas
 

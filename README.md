@@ -3,9 +3,9 @@ Código y publicaciones de Competitive Loader.
 
 El Loader permite preparar una instalación competitiva a partir de la ISO propia del usuario. El repositorio no incluye ISO, memory ni datos extraídos del juego.
 
-## Rising Battle 1.4.1 — desarrollo
+## Rising Battle 1.5.0 — torneo local en validación
 
-Dragon Net Battle conserva su menú y códigos. El panel provisional se abre desde F1 → Pruebas de sala BTC (desarrollo), con chat, usuarios, bots y expulsiones. El objetivo corregido es adaptar Tenkaichi Budokai Online a los torneos BTC; esa integración y el servicio público de códigos cortos siguen pendientes. [Uso e implementación](RISING-BATTLE.md).
+La entrada Tenkaichi Budokai Online abre las salas y torneos BTC. Dragon Net Battle mantiene su menú y códigos. Incluye inscripciones, FT1–FT5, bracket de 2–32 participantes, pases libres, resultados coincidentes de ambos jugadores y anuncios en el chat. La prueba Todos contra mí prepara cuatro inscritos: el usuario y tres bots con clientes reales programados; el humano juega los tres sets incluso si pierde. La vista de un combate de bots es una ventana local; el espectador remoto por replay y el servicio público de códigos cortos siguen pendientes. [Uso y límites de la prueba](RISING-BATTLE.md).
 
 ## Release 1.3.2
 
