@@ -1,0 +1,55 @@
+name: Publicar Competitive Loader
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: CompetitiveLoader/requirements-build.txt
+
+      - name: Comprobar la versión de la etiqueta
+        shell: pwsh
+        run: |
+          $version = python -c "import sys; sys.path.insert(0, 'CompetitiveLoader'); import competitive_loader as app; print(app.APP_VERSION_TEXT)"
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "La etiqueta ${{ github.ref_name }} no coincide con la versión v$version del código."
+          }
+
+      - name: Construir el paquete de Windows
+        shell: pwsh
+        run: .\CompetitiveLoader\build.ps1 -Python python
+
+      - name: Guardar el paquete del trabajo
+        uses: actions/upload-artifact@v4
+        with:
+          name: CompetitiveLoader-windows-x64
+          path: CompetitiveLoader/release/CompetitiveLoader-windows-x64.zip
+          if-no-files-found: error
+
+      - name: Crear la Release de GitHub
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ github.ref_name }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "${{ github.ref_name }}" "CompetitiveLoader/release/CompetitiveLoader-windows-x64.zip" --clobber
+          } else {
+            gh release create "${{ github.ref_name }}" "CompetitiveLoader/release/CompetitiveLoader-windows-x64.zip" --generate-notes --title "Competitive Loader ${{ github.ref_name }}"
+          }
+

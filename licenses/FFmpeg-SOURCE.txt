@@ -1,0 +1,18 @@
+Competitive Loader includes a minimal, unmodified FFmpeg 7.1.5 executable
+used only to convert the user's locally installed opening movie.
+
+Project: https://ffmpeg.org/
+Exact source archive: https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz
+License: GNU Lesser General Public License version 2.1 or later
+
+Build configuration:
+--disable-everything --disable-doc --disable-debug --disable-network
+--disable-autodetect --disable-x86asm --enable-small --enable-static
+--disable-shared --enable-ffmpeg --enable-protocol=file
+--enable-demuxer=mpegps --enable-demuxer=adx
+--enable-decoder=mpeg2video --enable-decoder=adpcm_adx
+--enable-parser=mpegvideo --enable-encoder=mpeg2video
+--enable-muxer=mpeg2vob --enable-filter=buffer
+--enable-filter=buffersink --enable-filter=format --enable-filter=null
+--enable-swscale --enable-w32threads --extra-cflags=-Os
+--extra-ldflags=-static
