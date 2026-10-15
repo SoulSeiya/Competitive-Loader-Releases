@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest import mock
 import sys
+import io
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import competitive_loader as loader
@@ -11,6 +12,11 @@ import local_online_test as lab
 
 
 class OnlineLabTests(unittest.TestCase):
+    def setUp(self):
+        output = mock.patch("sys.stdout", new=io.StringIO())
+        output.start()
+        self.addCleanup(output.stop)
+
     def test_profile_rejects_unreviewed_build_before_mutating_hooks(self):
         previous = loader.CALL_WRAPPERS
         with mock.patch.object(loader, "sha256_file", return_value="unknown"):

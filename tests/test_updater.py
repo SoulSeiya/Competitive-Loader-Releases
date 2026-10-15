@@ -131,7 +131,7 @@ class UpdaterTests(unittest.TestCase):
             command = popen.call_args.args[0]
             self.assertEqual(command[0], str(target.resolve()))
             self.assertEqual(command[1], "--finish-loader-update")
-            self.assertEqual(Path(command[3]), update_dir)
+            self.assertTrue(Path(command[3]).samefile(update_dir))
 
 
 if __name__ == "__main__":
