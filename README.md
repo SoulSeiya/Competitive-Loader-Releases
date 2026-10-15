@@ -5,6 +5,10 @@ El Loader permite preparar una instalación competitiva a partir de la ISO propi
 
 ## Pruebas online con decomp 0.1.35.2
 
+Para jugar manualmente con el perfil nuevo, abre `bin/Competitive Loader Experimental.exe` y pulsa **Jugar Competitive · Experimental**. Usa una instalación competitiva ya preparada con el decomp 0.1.35.2 revisado. Si no encuentra una, permite seleccionar su carpeta. Conserva la importación de memory y fija la versión del decomp; no descarga actualizaciones. El chat se abre con Tab y se mantienen los tiempos oficiales mientras se valida el perfil.
+
+Construcción de esta interfaz: `python -m PyInstaller --noconfirm --distpath dist --workpath build/experimental "build_gui/Competitive Experimental.spec"`.
+
 Esta rama incorpora un laboratorio experimental: [ONLINE-LAB.md](ONLINE-LAB.md).
 Ejecuta dos runtimes independientes por loopback y conserva logs y hashes para investigar desincronizaciones.
 

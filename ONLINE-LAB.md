@@ -1,6 +1,6 @@
 # Laboratorio online 0.1.35.2
 
-Perfil experimental, solo por `local_online_test.py`. La GUI conserva el comportamiento anterior y NO activa este perfil.
+El laboratorio automatizado usa `local_online_test.py`. Para jugar manualmente con este perfil, usa `bin/Competitive Loader Experimental.exe`, construido desde `competitive_experimental_gui.py`. La interfaz anterior (`competitive_gui.py`) conserva su comportamiento previo.
 
 La versión antigua permanece en la carpeta original. Esta copia no busca actualizaciones al ejecutar el laboratorio.
 Se fija el SHA-256 del ejecutable Windows revisado; no basta con que coincidan sus símbolos.
