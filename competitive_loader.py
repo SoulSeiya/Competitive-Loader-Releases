@@ -177,7 +177,7 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
         CALL_WRAPPERS["competitive_score.o"] = {
             "_ZL9build_netv": "Competitive_RisingMenu",
             "_ZN5ImGui5BeginEPKcPbi": "Competitive_RisingBegin",
-            "Ui_Event": "Competitive_WindowEvent",
+            "Ui_Event": "Competitive_RisingEvent",
             "Port_NetRulesSet": "Competitive_FtRulesSet",
             "Port_LobbyStartQuick": "Competitive_FtQuickStart",
             "_ZN5ImGui12TextDisabledEPKcz": "Competitive_FtHostRow",

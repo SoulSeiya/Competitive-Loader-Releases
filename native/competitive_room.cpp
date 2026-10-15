@@ -14,6 +14,13 @@ static RisingShared *risingShared;
 static bool risingRoomRequested;
 static RisingState risingState;
 static RisingCommand risingCommand;
+extern "C" int Competitive_WindowEvent(const SDL_Event *);
+extern "C" int Competitive_RisingEvent(const SDL_Event *event) {
+    const bool wasOnlineMenu = nativeNetOpen;
+    const int result = Competitive_WindowEvent(event);
+    if (wasOnlineMenu && !nativeNetOpen) risingRoomRequested = false;
+    return result;
+}
 
 static bool risingConnectBridge() {
     if (risingShared) return true;

@@ -13,6 +13,7 @@ static int originalMenuCalls;
 extern "C" void OriginalNetMenu(void) { ++originalMenuCalls; }
 extern "C" void Ui_Toggle(void) { nativeNetOpen = false; }
 extern "C" void Port_LobbyCancel(void) {}
+extern "C" int Competitive_WindowEvent(const SDL_Event *) { nativeNetOpen = false; return 1; }
 extern "C" { volatile int gPortNetMenuRequest; }
 
 static void frame() {
@@ -37,6 +38,9 @@ int main(int argc, char **argv) {
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     frame();
     assert(originalMenuCalls == 1 && !risingRoomRequested); // Native entry is never replaced by default.
+    risingRoomRequested = true;
+    assert(Competitive_RisingEvent(NULL) == 1 && !risingRoomRequested); // Escape/native close cannot change the next normal entry.
+    nativeNetOpen = true;
     risingRoomRequested = true; // Explicit development panel entry, pending the TBO integration.
     frame(); frame();
     assert(risingShared && !risingState.connected);
