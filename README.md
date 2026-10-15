@@ -9,6 +9,8 @@ Para jugar manualmente con el perfil nuevo, abre `bin/Competitive Loader Experim
 
 Construcción de esta interfaz: `python -m PyInstaller --noconfirm --distpath dist --workpath build/experimental "build_gui/Competitive Experimental.spec"`.
 
+La interfaz experimental vuelve a convertir el vídeo de apertura competitivo a fotogramas completos de tipo I, necesarios para el decodificador actual. La primera vez conserva `ZS3USOP.original.PSS` y prepara una copia compatible; no cambia la ISO ni las reglas online. El laboratorio automatizado conserva su configuración anterior para reproducir los resultados registrados.
+
 Esta rama incorpora un laboratorio experimental: [ONLINE-LAB.md](ONLINE-LAB.md).
 Ejecuta dos runtimes independientes por loopback y conserva logs y hashes para investigar desincronizaciones.
 

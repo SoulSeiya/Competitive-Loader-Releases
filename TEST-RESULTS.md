@@ -25,3 +25,9 @@ Pruebas Python: 9 correctas, 1 omitida por no tener el ejecutable del Loader con
 No se comparó aún este recorrido contra el Loader antiguo. No demuestra que se haya identificado la causa de los reportes existentes. Faltan red con lag/pérdida, revancha, clashes, transformaciones, sesiones largas y dos equipos distintos. El perfil sigue usando los objetos de gameplay anteriores; la regeneración reproducible del payload y su revisión contra estructuras actuales quedan pendientes.
 
 La GUI conserva el parche anterior. Este experimento solo se activa mediante local_online_test.py; no se creó ni reemplazó una Release.
+
+## Corrección posterior de la apertura gráfica
+
+Tras incorporar la interfaz experimental se reportó un fallo en el vídeo de apertura. La intro competitiva incluía fotogramas P/B y esta interfaz había omitido su conversión, aunque el decodificador oficial sigue reconstruyendo solo imágenes I. Se restauró la conversión únicamente en el arranque gráfico y se incluyeron el conversor y sus licencias en ese EXE.
+
+Se preparó la copia compatible de la instalación local, conservando ZS3USOP.original.PSS. Una comprobación compilada con plat_mpeg2.c de 0.1.35.2 recorrió el archivo convertido: 2.472 cuadros decodificados y 2.295 cambios de imagen a 512x448. La segunda llamada al preparador reutilizó el vídeo sin modificarlo. El EXE gráfico actualizado pasó la comprobación de apertura de interfaz. No se repitió una partida online por este cambio del vídeo de apertura.

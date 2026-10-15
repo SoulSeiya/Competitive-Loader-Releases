@@ -1,7 +1,8 @@
 from pathlib import Path
 PROJECT = Path(SPECPATH).parent
 a = Analysis([str(PROJECT / 'competitive_experimental_gui.py')], pathex=[str(PROJECT)],
-    binaries=[], datas=[(str(PROJECT / 'payload'), 'payload'), (str(PROJECT / 'assets'), 'assets')],
+    binaries=[], datas=[(str(PROJECT / 'payload'), 'payload'), (str(PROJECT / 'assets'), 'assets'),
+        (str(PROJECT / 'tools' / 'ffmpeg-lite.exe'), 'tools'), (str(PROJECT / 'licenses'), 'licenses')],
     hiddenimports=['ps2_save'], hookspath=[], hooksconfig={}, runtime_hooks=[], excludes=[], noarchive=False, optimize=0)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='Competitive Loader Experimental',

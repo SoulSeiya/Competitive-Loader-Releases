@@ -61,7 +61,7 @@ class ExperimentalApp(CompetitiveApp):
             image = core.validate_payload(core.PAYLOAD, exe)
             image.build(0x60000000, image.pe.preferred_base)
             core.save_config({"runtime": str(runtime.resolve()), "release_tag": "0.1.35.2"})
-            return core.launch_patched(exe, image, convert_intro=False)
+            return core.launch_patched(exe, image, convert_intro=True)
 
         self._run("Iniciando Competitive con el perfil nuevo",
                   "Competitive iniciado con el perfil experimental de 0.1.35.2.", launch)
