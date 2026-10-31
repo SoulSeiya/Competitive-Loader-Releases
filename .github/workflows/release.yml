@@ -23,24 +23,42 @@ jobs:
       - name: Verificar versión y pruebas
         shell: pwsh
         run: |
-          python -m unittest discover -s tests -v
+          python -m pip install -r requirements-build.txt
+          if (Test-Path 'competitive_web_client.py') {
+            python -m unittest tests.test_window_chrome tests.test_profile_identity tests.test_challonge_client tests.test_challonge_shared tests.test_fresh_installation tests.test_duel_presentation tests.test_ranked_client tests.test_web_client tests.test_room_cleanup tests.test_updater tests.test_github_releases tests.test_client_updates tests.test_social_client tests.test_candidate_profile
+          } else { python -m unittest discover -s tests -v }
           if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas' }
-          $version = python -c "import competitive_loader as c; print(c.APP_VERSION_TEXT)"
+          $version = python -c "import competitive_loader as c; print('.'.join(map(str,c.APP_VERSION)))"
           if ('${{ github.ref_type }}' -eq 'tag' -and "v$version" -ne '${{ github.ref_name }}') {
             throw 'La etiqueta y la versión del código difieren'
           }
       - name: Construir paquete
         shell: pwsh
-        run: ./build.ps1 -Python python
+        run: |
+          if (Test-Path 'competitive_web_client.py') {
+            python -m PyInstaller --noconfirm --distpath dist-web --workpath build-web 'build_gui/Competitive Web Client.spec'
+            if ($LASTEXITCODE -ne 0) { throw 'Fallo PyInstaller del cliente web' }
+            New-Item -ItemType Directory -Force release | Out-Null
+            Compress-Archive -Path 'dist-web/Competitive Loader.exe',licenses,README.md -DestinationPath release/CompetitiveLoader-windows-x64.zip -Force
+          } else { ./build.ps1 -Python python }
       - name: Comprobar EXE
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath '.\dist\Competitive Loader.exe' -ArgumentList '--smoke-test' -WindowStyle Hidden -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw 'Falló la apertura del EXE' }
-          python tools/check_public_package.py
-          if ($LASTEXITCODE -ne 0) { throw 'El paquete contiene funciones experimentales' }
-          python -m unittest discover -s tests -v
-          if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas del paquete' }
+          if (Test-Path 'competitive_web_client.py') {
+            $previousLocal=$env:LOCALAPPDATA
+            try {
+              $env:LOCALAPPDATA=Join-Path $env:RUNNER_TEMP 'RisingBattle-smoke'
+              $p=Start-Process -FilePath './dist-web/Competitive Loader.exe' -ArgumentList '--smoke-web-client' -WindowStyle Hidden -Wait -PassThru
+              if ($p.ExitCode -ne 0) { throw 'Fallo el arranque del cliente web' }
+              $proof=Get-Content dist-web/web-client-smoke.json -Raw | ConvertFrom-Json
+              if (-not $proof.approved_css_identical -or $proof.renderErrors.Count -gt 0 -or $proof.social_signals_fixture.overflow) { throw 'Fallo la comprobacion WebView' }
+            } finally { $env:LOCALAPPDATA=$previousLocal }
+          } else {
+            $p=Start-Process -FilePath './dist/Competitive Loader.exe' -ArgumentList '--smoke-test' -WindowStyle Hidden -Wait -PassThru
+            if ($p.ExitCode -ne 0) { throw 'Fallo la apertura del EXE' }
+            python tools/check_public_package.py
+            if ($LASTEXITCODE -ne 0) { throw 'El paquete contiene funciones experimentales' }
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: CompetitiveLoader-windows-x64

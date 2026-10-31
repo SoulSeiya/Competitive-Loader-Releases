@@ -1,0 +1,28 @@
+name: Liberar Rising Battle 2.0.0 a las 21:30 de Chile
+on:
+  schedule:
+    # 2026-11-01 00:30 UTC = 2026-10-31 21:30 America/Santiago.
+    # Retry slots are idempotent; the script refuses any other date.
+    - cron: '30,35,40,45,50,55 0 1 11 *'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publicar solo si ya llego la hora autorizada
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: rising-battle-2-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar borrador y publicar cuando corresponda
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: python3 .github/publish_scheduled_v2.py

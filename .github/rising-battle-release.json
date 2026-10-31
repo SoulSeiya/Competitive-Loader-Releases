@@ -1,0 +1,19 @@
+{
+  "repository": "SoulSeiya/Competitive-Loader-Releases",
+  "release_id": 430105653,
+  "tag": "v2.0.0",
+  "publish_at": "2026-11-01T00:30:00+00:00",
+  "expires_at": "2026-11-02T00:30:00+00:00",
+  "assets": {
+    "CompetitiveLoader-windows-x64.zip": {
+      "id": 696123392,
+      "size": 66895616,
+      "sha256": "79113e589a73e0ab10740db42ce417a42d9cdf1b33a300dde656d163da90c3ca"
+    },
+    "RisingBattle-v2.0.0-source.zip": {
+      "id": 696123702,
+      "size": 49096158,
+      "sha256": "e2e12aaf4ed0c3bc54fcb0d2d1155eb4ba59ef099f3011833ce9a2e475152bd0"
+    }
+  }
+}
