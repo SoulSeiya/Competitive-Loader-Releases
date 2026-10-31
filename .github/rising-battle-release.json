@@ -6,14 +6,14 @@
   "expires_at": "2026-11-02T00:30:00+00:00",
   "assets": {
     "CompetitiveLoader-windows-x64.zip": {
-      "id": 696123392,
-      "size": 66895616,
-      "sha256": "79113e589a73e0ab10740db42ce417a42d9cdf1b33a300dde656d163da90c3ca"
+      "id": 696699699,
+      "size": 66897740,
+      "sha256": "10392812c5f4df4da49b1383c52d34ae05ea6f4aa38e437518fe5ad07f9214ce"
     },
     "RisingBattle-v2.0.0-source.zip": {
-      "id": 696123702,
-      "size": 49096158,
-      "sha256": "e2e12aaf4ed0c3bc54fcb0d2d1155eb4ba59ef099f3011833ce9a2e475152bd0"
+      "id": 696700156,
+      "size": 49096326,
+      "sha256": "5db2c242a252b0569c0c4951dc91072bbaaf40b79a1521b54e6c5bc3468a8fda"
     }
   }
 }
