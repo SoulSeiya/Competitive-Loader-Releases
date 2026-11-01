@@ -27,3 +27,13 @@ class MatchmakingTests(unittest.TestCase):
         with patch.object(gui.core,"load_config",return_value={"runtime":"keep"}),patch.object(gui.core,"save_config") as save,patch.object(gui.simpledialog,"askstring",return_value="https://btc.example.workers.dev"):
             app.configure_matchmaking()
         self.assertEqual(save.call_args.args[0],{"runtime":"keep","btc_matchmaking_url":"https://btc.example.workers.dev"})
+
+    def test_room_connection_needs_no_url_or_config_mutation(self):
+        import competitive_release_gui as gui
+        app=gui.ReleaseApp.__new__(gui.ReleaseApp)
+        app.open_online_hub=Mock();app.online_hub=Mock()
+        with patch.object(gui.core,"save_config") as save,patch.object(gui.simpledialog,"askstring") as prompt:
+            app.configure_room_service()
+        app.open_online_hub.assert_called_once_with()
+        app.online_hub.show.assert_called_once_with("connection")
+        prompt.assert_not_called();save.assert_not_called()

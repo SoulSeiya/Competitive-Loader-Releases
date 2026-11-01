@@ -67,7 +67,9 @@ class UpdaterTests(unittest.TestCase):
             self.assertIsNone(loader.latest_loader_update())
 
     def test_release_package_stages_the_executable(self):
-        built_exe = Path(__file__).resolve().parents[1] / "dist" / "Competitive Loader.exe"
+        root=Path(__file__).resolve().parents[1]
+        built_exe=root/"dist-web"/"Competitive Loader.exe"
+        if not built_exe.is_file():built_exe=root/"dist"/"Competitive Loader.exe"
         if not built_exe.is_file():
             self.skipTest("El ejecutable todavía no fue construido")
         with tempfile.TemporaryDirectory() as temp_text:

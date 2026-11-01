@@ -37,6 +37,7 @@ class SessionDiagnostics:
                         "platform": platform.platform(), "status": "preparing",
                         "online_observed": False, "desync_observed": False}
         self.running = False
+        self._close_event=None
         self._reader = None
         self._initial_crash = self._crash_signature()
         self.local.info("SESSION_START %s", ident)
@@ -57,12 +58,36 @@ class SessionDiagnostics:
         line = line.rstrip("\r\n")
         self.local.info("GAME %s", line)
         low = line.lower()
+        if 'btc: session_begin online=1' in low:
+            self.summary['ranked_serial']=self.summary.get('ranked_serial',0)+1
+            self.summary['ranked_connected']=True
+            self.summary['ranked_completed']=False
+            self.summary['ranked_failed']=False
+            self.summary['ranked_score']=None
+            self.summary['duel_exit_score']=None
+        elif 'btc: session_end' in low:
+            self.summary['ranked_connected']=False
+        if 'btc: pause_exit' in low or 'btc: set_result' in low:
+            import re
+            outcome=re.search(r'P1=(\d+) P2=(\d+) target=(\d+)',line)
+            if outcome:
+                a,b,target=map(int,outcome.groups())
+                if 1<=target<=5 and 0<=a<=target and 0<=b<=target and ((a==target)!=(b==target)):
+                    if 'btc: pause_exit' in low:self.summary['duel_exit_score']=[a,b]
+                    else:self.summary['ranked_score']=[a,b];self.summary['ranked_completed']=True
+        if 'net: ft complete' in low:
+            self.summary['ranked_completed']=True
+        if 'net: score confirmed' in low:
+            import re
+            score=re.search(r'P1=(\d+) P2=(\d+)',line)
+            if score:self.summary['ranked_score']=[int(score[1]),int(score[2])]
         if any(word in low for word in ("bt3: net:", "net:", "relay", "rollback", "desync", "gameplay data:", "memory")):
             self.online.info("%s", line)
         if "net: connected" in low or "net: joining" in low or "net: hosting" in low:
             self.summary["online_observed"] = True
         if "the two games differ" in low or "the two games no longer agree" in low or "(desync)" in low:
             self.summary["desync_observed"] = True
+            self.summary["ranked_failed"] = True
 
     def _read_output(self, fd: int):
         try:
@@ -90,15 +115,38 @@ class SessionDiagnostics:
                          self.summary["memory_sha256"], json.dumps(self.summary["payload_sha256"]))
         self._write_summary()
 
+    def request_close(self):
+        """Ask this launch's native game to perform its normal exit, offline only."""
+        if not self.running or self.summary.get('ranked_connected') or not self._close_event:return False
+        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+        kernel.SetEvent.argtypes=[ctypes.c_void_p];kernel.SetEvent.restype=ctypes.c_int
+        if not kernel.SetEvent(self._close_event):raise ctypes.WinError(ctypes.get_last_error())
+        self.local.info('CLIENT_REQUEST_CLOSE after confirmed duel')
+        return True
+
+    def _release_close_event(self):
+        if getattr(self,'_close_event',None):
+            kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+            kernel.CloseHandle.argtypes=[ctypes.c_void_p];kernel.CloseHandle(self._close_event)
+            self._close_event=None
+
     def launch(self, exe: Path, image, env: dict | None = None):
         self._metadata(exe)
+        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+        kernel.CreateEventW.argtypes=[ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_wchar_p]
+        kernel.CreateEventW.restype=ctypes.c_void_p
+        close_name='Local\\BTC-Close-'+uuid.uuid4().hex
+        self._close_event=kernel.CreateEventW(None,False,False,close_name)
+        if not self._close_event:raise ctypes.WinError(ctypes.get_last_error())
         read_fd, write_fd = os.pipe()
         self._reader = threading.Thread(target=self._read_output, args=(read_fd,), daemon=True)
         self._reader.start()
         try:
-            launch_env = {"BT3_GS_VERBOSE": "1"}
+            launch_env = {"BT3_GS_VERBOSE": "1", "BTC_CLIENT_CLOSE_EVENT":close_name}
             launch_env.update(env or {})
             pid = core.launch_patched(exe, image, game_output_fd=write_fd, env=launch_env)
+        except Exception:
+            self._release_close_event();raise
         finally:
             os.close(write_fd)
         self.running = True
@@ -141,6 +189,7 @@ class SessionDiagnostics:
                 kernel.CloseHandle(handle)
             core._release_online_memory_handles()
             self.running = False
+            self._release_close_event()
 
     def finish(self, status: str):
         crash = self._crash_signature()

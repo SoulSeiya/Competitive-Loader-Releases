@@ -1,33 +1,30 @@
-# Competitive Loader
+# Rising Battle 2.0.0 — Beta competitiva
 
-Loader publico para jugar Competitive Edition con Tenkaichi3Decomp. Compatible con **0.1.35.4** y **0.1.35.2**.
+Un cliente para jugar BTC: perfiles, amigos, salas y duelos desde una sola aplicación.
 
-[Descargar la ultima version](https://github.com/SoulSeiya/Competitive-Loader-Releases/releases/latest)
+## Novedades
+- Interfaz nueva, barra superior oscura y panel Amigos que puedes cerrar.
+- Perfil local con nombre y foto; vinculación opcional con Challonge para importar la identidad.
+- Amigos por código BTC, chat privado, invitaciones y desafíos mediante clic derecho. Los mensajes nuevos avisan junto al nombre del amigo.
+- Solicitudes de duelo en pantalla con las reglas y botones Aceptar/Rechazar. Al aceptar se abre el juego.
+- Salas públicas o con contraseña, chat y duelos entre miembros.
+- Marcador FT compacto y transparente, presentación de combate y resultado GG.
+- Ranked beta: FT2, 360 segundos y 2 personajes, elegidos dentro del juego. Nueva temporada desde 1000 puntos.
+- Instalación desde tu propia ISO, motor BTC 0.1.38.1 incluido y registros locales para diagnosticar problemas.
 
-## Funciones de juego
+## Actualizar desde el launcher anterior
+Usa Buscar actualizaciones y acepta actualizar. Se sustituye el cliente; no se descarga automáticamente otra versión del decomp. Cierra el juego antes de actualizar.
+Si tu instalación usa un motor anterior a 0.1.38.1, prepara una instalación nueva desde tu propia ISO y memory en la nueva interfaz. Conserva la instalación anterior hasta comprobar que todo funciona. No selecciones como destino una carpeta que ya contenga una instalación.
+La actualización conserva el perfil/configuración local. En un PC nuevo, crea el perfil y prepara BTC; no se incluyen ISO ni memory.
 
-- Dragon Net Battle original: Host, Quick match, Join y codigos para partidas de dos jugadores.
-- FT1 a FT5, marcador persistente, rival conectado y GG al terminar el set.
-- Tiempos BTC de 180, 240, 360 y 480 segundos, mas sin limite.
-- Correcciones de intro, audio y modelos de efectos.
-- Chat original con Tab y bloqueo de movimiento de ventana durante el online.
-- Logs locales y online para investigar crashes y desincronizaciones.
-- Busqueda de actualizaciones con cache y alternativa publica cuando GitHub limita su API.
+## Alcance de esta beta
+Torneos y espectador no están habilitados en esta entrega. La foto elegida en el perfil todavía se muestra localmente; compartir avatares entre clientes queda para una mejora posterior. Challonge es opcional y no habilita torneos aquí.
+Los puntos ranked son provisionales. Elo por set: entre rivales con igual puntuación, normalmente +12/-12; el resultado 2-0 o 2-1 no cambia ese criterio.
 
-## Instalacion
+## Validación y límites
+120 pruebas Python y pruebas JavaScript de avisos pasadas. EXE y pantallas comprobados con datos simulados, incluyendo 820x600 sin desbordamiento. Hay duelos FT2 reales probados en versiones anteriores; falta repetir un ciclo online completo y la autorización real de Challonge con esta compilación. No se afirma que esta beta elimine el lag de menús reportado.
+No incluye perfiles, credenciales, ISO ni memory. Se recomienda guardar una copia de la instalación anterior y reportar problemas con los registros locales.
 
-Extrae el ZIP y abre `Competitive Loader.exe`. Necesitas tu propia ISO competitiva y memory compatible. Ambos jugadores deben usar las mismas versiones y datos. Conserva `CompetitiveRuntime` y `competitive_loader.json` al actualizar.
+## Código y construcción
 
-El repositorio y el paquete no incluyen ISO, memory ni datos extraidos del juego.
-Las salas, torneos, bots y espectadores experimentales se mantienen fuera de la distribucion y del codigo actual de main.
-
-## Desarrollo y comprobaciones
-
-`build.ps1` construye el paquete y verifica que no contenga modulos ni parches experimentales. GitHub Actions ejecuta las pruebas y el empaquetado en main. Las Releases se publican desde versiones verificadas.
-
-- [Funciones e instalacion](README.txt)
-- [Notas de version](RELEASE-NOTES.md)
-- [Revision de compatibilidad del decomp](docs/decomp-0.1.35.4.md)
-- [Matchmaking propio de dos jugadores](service/cloudflare-matchmaking/README.md)
-
-Los ensayos locales no sustituyen las partidas prolongadas entre equipos reales.
+Python 3.12 en Windows. Instala requirements-build.txt y ejecuta `python -m PyInstaller --noconfirm --distpath dist-web --workpath build-web "build_gui/Competitive Web Client.spec"`. Los objetos de payload y el motor revisado están incluidos; para cambiar código nativo necesitas clang con destino x86_64-w64-windows-gnu, SDL3 e ImGui de 0.1.38.1. La copia de código histórico no habilita pantallas de laboratorio, espectador ni torneos en el cliente web.

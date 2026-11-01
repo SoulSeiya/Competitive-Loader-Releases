@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {socialSignals,newSocialSignals}=require('../web_client/social_signals.js');
+const social={incoming:[{id:'friend',name:'New'}],events:[{id:'m1',kind:'message',sender:'a'},{id:'m2',kind:'message',sender:'a'},{id:'m3',kind:'message',sender:'b'},{id:'invite',kind:'invite'},{id:'duel',kind:'challenge'}]};
+const result=socialSignals(social);
+assert.deepEqual(result.unread,{a:2,b:1});assert.equal(result.total,6);
+assert.deepEqual(result.actions.map(a=>a.actionKind),['friend','invite']);
+assert.deepEqual(socialSignals(null),{unread:{},actions:[],total:0});
+const seen=new Set();assert.equal(newSocialSignals(social.events,seen).length,3);
+assert.equal(newSocialSignals(social.events,seen).length,0);
+assert.equal(newSocialSignals([...social.events,{id:'m4',kind:'message',sender:'a'}],seen).length,1);
+assert.deepEqual(socialSignals({...social,events:[]}).unread,{});
+console.log('Social signals: per-friend badges, request routing, read cleanup, no repeated alerts OK');

@@ -29,20 +29,36 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (1, 5, 9)
+APP_VERSION = (2, 0, 0)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
-    "• Versión pública centrada en partidas normales, sin salas ni torneos experimentales.\n"
-    "• Búsqueda de actualizaciones alternativa cuando GitHub limita su API.\n"
-    "• Caché de versiones durante cinco minutos y respeto del tiempo de espera de GitHub.\n"
-    "• Compatible con Tenkaichi3Decomp 0.1.35.4 y 0.1.35.2.\n"
-    "• Descarga automática de la 0.1.35.4, con sus mejoras visuales originales.\n"
-    "• Comprobación de funciones, llamadas y etiquetas antes de iniciar el juego.\n"
-    "• Se conservan las correcciones de audio y efectos, FT, marcador y tiempos BTC.\n"
-    "• Dragon Net Battle conserva las partidas directas y sus códigos.\n"
-    "• Registros locales y online y búsqueda de actualizaciones desde el Loader."
+    "Barra superior oscura y avisos sociales junto al amigo, sin bandeja intermedia.\n"
+    "Perfil local de primer inicio y vinculación opcional de nombre/avatar con Challonge.\n"
+    "Solicitudes de duelo automáticas en pantalla: rival, reglas, Aceptar y Rechazar.\n"
+    "Marcador FT compacto y ligero: nombres sin panel de fondo y puntuación con transparencia.\n"
+    "Presentación más breve y resultado GG sin oscurecer toda la pantalla.\n"
+    "Ranked beta: FT2, 360 segundos y máximo 2 personajes.\n"
+    "Temporización Windows alternativa opcional; desactivada por defecto para comparar en tu PC.\n"
+    "Filtro rápido de texturas de idiomas: evita leer imágenes completas que no coinciden.\n"
+    "Asistente de instalación corregido: rutas largas sin desbordamiento ni botones cortados.\n"
+    "Instalación desde cero: elige carpeta, ISO competitiva y memory desde el cliente.\n"
+    "Motor BTC incluido, preparación segura y estado de cada etapa sin descargas del decomp.\n"
+    "Un resultado ranked antiguo ya no cierra el juego de un duelo nuevo.\n"
+    "Cierre del juego vinculado al set ranked y a la instancia que abrió el cliente.\n"
+    "Práctica FT contra la CPU en dificultad máxima, con marcador, presentación y GG.\n"
+    "Team battle con límite de personajes: ya no se traba el cursor al completar el equipo.\n"
+    "En el juego: presentación de cada combate, punto de set y pantalla GG con el set completo.\n"
+    "El marcador respeta tu lado del HUD y marca cuál eres.\n"
+    "Desafío sin respuesta o rechazado: el cliente se libera solo.\n"
+    "Duelos: nombres de jugadores, FT y victorias confirmadas en directo.\n"
+    "Resultado final, historial y revancha con aceptación del rival.\n"
+    "El duelo abre el juego y lo cierra al terminar si lo abrió automáticamente.\n"
+    "Inicio ágil con Skip de logos, intro y copyright.\n"
+    "Menú online sin torneos; identidad UT en los ajustes.\n"
+    "Salas, amigos y ranked beta. Motor BTC fijo."
 )
+
 COMPETITIVE_SLUS_SHA1 = "28992f0d472bbb6b67cc193bb7d79b8a78bd7feb"
 DBZP_SHA1 = "4f910969e05d9b25c83af7642b60da9949a4348b"
 ROM_BASE, ROM_END = 0x100000, 0x2FF180
@@ -60,7 +76,9 @@ DEFAULT_RUNTIME = HERE / "CompetitiveRuntime"
 CONFIG = HERE / "competitive_loader.json"
 GITHUB_RELEASE_CACHE = HERE / ".github-releases-cache.json"
 RELEASE_PROFILE = False
+BTC_1381_HASH = "545cb2b6be4826f77c81eb2e3a97e4661d27dda9ce579939f36c0272610d24b3"
 REVIEWED_DECOMP_HASHES = {
+    BTC_1381_HASH: "v0.1.38.1-btc.1-prueba",
     "a34fe8141d4190077e5bb8c874fb39280815535bb6b53f82e669daac1636b9b9": "v0.1.35.2",
     "9c9b496cda2e0388581a4debc742f2a606d0646c040f3de65f6e7bac7b1809b2": "v0.1.35.4",
 }
@@ -176,23 +194,55 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
     global PATCHES, CALL_WRAPPERS, ENTRY_PATCH_TARGETS, CALL_WRAPPER_TARGETS
     global PATCH_TARGETS, PATCH_OBJECTS, PATCH_SYMBOLS, ONLINE_TIME_LABEL_PATCHES
     PATCHES = {name: list(targets) for name, targets in BASE_PATCHES.items() if name != "battle_hud_e_d.o"}
-    CALL_WRAPPERS = {"competitive_audio.o": {"ADXT_StartAfs": "Competitive_AudioStartAfs"}} if audio_fix else {}
+    audio_object = "competitive_audio_1381.o" if actual == BTC_1381_HASH else "competitive_audio.o"
+    CALL_WRAPPERS = {audio_object: {"ADXT_StartAfs": "Competitive_AudioStartAfs"}} if audio_fix else {}
     CALL_WRAPPERS["competitive_effect_model.o"] = {"BtlObj_Create": "Competitive_EffectModelCreate"}
     if competitive_times:
         CALL_WRAPPERS["competitive_times.o"] = {"Battle_Load": "Competitive_TimeBattleLoad"}
     if session_score:
         CALL_WRAPPERS["competitive_score.o"] = {
-            "Ui_Event": "Competitive_WindowEvent",
+            "TeamSel_Update": "Competitive_TeamSelectUpdate",
+            "TeamSel_Input": "Competitive_TeamSelectInput",
+            "BattleSetup_SetMember": "Competitive_PracticeSetMember",
+            "BtlCam_UpdateOverride": "Competitive_ReplayCameraOverride",
+            "Demo_SetupBattle": "Competitive_ReplayCpuSetup",
+            "MainMenu_Run": "Competitive_RisingMainMenu",
+            "Port_PadRead": "Competitive_BotPadRead",
+            "_ZL9build_netv": "Competitive_RisingMenu",
+            "_ZN5ImGui5BeginEPKcPbi": "Competitive_RisingBegin",
+            "Ui_Event": "Competitive_RisingEvent",
+            "Port_NetActive": "Competitive_RoomNetActive",
+            "PortChat_Count": "Competitive_RoomChatCount",
+            "PortChat_Line": "Competitive_RoomChatLine",
+            "PortChat_Say": "Competitive_RoomChatSay",
+            "Port_LobbyCancel": "Competitive_RoomLobbyCancel",
             "Port_NetRulesSet": "Competitive_FtRulesSet",
             "Port_LobbyStartQuick": "Competitive_FtQuickStart",
             "_ZN5ImGui12TextDisabledEPKcz": "Competitive_FtHostRow",
             "Port_NetBeginTick": "Competitive_ScoreBeginTick",
             "Port_NetSessionBegin": "Competitive_ScoreSessionBegin",
             "Port_NetSessionEnd": "Competitive_ScoreSessionEnd",
+            "PauseMenu_Update": "Competitive_PauseMenuUpdate",
+            "Port_Setting": "Competitive_ClientSetting",
+            "_ZN5ImGui8CheckboxEPKcPb": "Competitive_ClientCheckbox",
             "BtlSeq_CheckBattleEnd": "Competitive_ScoreBattleEnd",
             "_ZN5ImGui6RenderEv": "Competitive_ScoreRender",
             "Ui_Draw": "Competitive_ScoreDraw",
             "Ui_DrawGL": "Competitive_ScoreDrawGL",
+        }
+    if session_score:
+        # The normal BTC client does not hook laboratory input/camera/demo paths.
+        for target in ("Demo_SetupBattle", "BtlCam_UpdateOverride", "Port_PadRead", "MainMenu_Run"):
+            CALL_WRAPPERS["competitive_score.o"].pop(target, None)
+    if session_score and actual == BTC_1381_HASH:
+        CALL_WRAPPERS["competitive_score.o"]["MainMenu_Init"] = "Competitive_MainMenuInit"
+        CALL_WRAPPERS["competitive_score.o"]["Port_LobbyHelloAsk"] = "Competitive_MenuHello"
+    if session_score and actual == BTC_1381_HASH:
+        CALL_WRAPPERS["competitive_score.o"]["vblank_wait"] = "Competitive_PaceWait"
+        CALL_WRAPPERS["competitive_menu_art.o"] = {
+            "MenuLabels_Art": "Competitive_MenuArt",
+            "MenuLabels_ArtKey": "Competitive_MenuArtKey",
+            "MenuLabels_ArtSwap": "Competitive_MenuArtSwap",
         }
     ENTRY_PATCH_TARGETS = {name for names in PATCHES.values() for name in names}
     CALL_WRAPPER_TARGETS = {name for hooks in CALL_WRAPPERS.values() for name in hooks}
@@ -743,7 +793,7 @@ def ensure_intro_compatible(runtime: Path) -> Path | None:
     return intro
 
 
-def _extract_competitive_iso(iso_path: Path, game: Path):
+def _extract_competitive_iso(iso_path: Path, game: Path, report=None):
     """Validate and extract one Competitive Edition ISO into an isolated game folder."""
     if not iso_path.is_file():
         raise LoaderError(f"No existe la ISO competitiva: {iso_path}")
@@ -768,6 +818,7 @@ def _extract_competitive_iso(iso_path: Path, game: Path):
             )
 
         print("[2/4] Extrayendo los archivos del juego (puede tardar varios minutos)...")
+        if report:report("Extrayendo los archivos de la ISO. Puede tardar varios minutos.")
         iso.extract_tree(iso.find(["DATA"]), disc / "DATA")
         # Keep all BIN files used by the port, not only DBZP.BIN.
         iso.extract_tree(iso.find(["BIN"]), disc / "BIN")
@@ -777,6 +828,7 @@ def _extract_competitive_iso(iso_path: Path, game: Path):
     if not afs_files:
         afs_files = sorted((disc / "DATA").glob("*.afs"))
     for afs in afs_files:
+        if report:report(f"Preparando {afs.name}...")
         count = split_afs(afs, game / afs.stem.lower())
         print(f"      {afs.name}: {count} archivos")
 
@@ -1636,9 +1688,16 @@ def launch_patched(
     launch_env.setdefault("BTC_REPLAY_SPLIT", None)
     launch_env.setdefault("BTC_LOCAL_SPECTATOR", None)
     if image.release_profile:
+        # This release has no observer transport or diagnostic frame capture.
+        for key in ("BTC_OBSERVER_LAB", "BTC_OBSERVER_BRIDGE", "BT3_HASH", "BT3_TRACE",
+                    "BTC_REPLAY_RECORD_CPU", "BTC_REPLAY_SPLIT", "BTC_LOCAL_SPECTATOR"):
+            launch_env[key] = None
+    if image.release_profile:
         from btc_matchmaking import environment
         try:
             launch_env.update(environment(load_config(), launch_env))
+            from rising_service import DEFAULT_ROOM_SERVICE
+            launch_env["BTC_ROOM_SERVICE"] = DEFAULT_ROOM_SERVICE
         except ValueError as exc:
             raise LoaderError(str(exc)) from None
     online_hash = ""
@@ -1655,6 +1714,10 @@ def launch_patched(
         else:
             print("[AVISO] No hay una memory instalada para el online; se usará la sesión vacía del decomp.")
 
+    if sha256_file(exe_path) == BTC_1381_HASH:
+        launch_env["BT3_NET_DESYNC_END"] = "1"
+        for key in ("BTC_TOURNAMENT_BOT", "BTC_TOURNAMENT_DEMO_USER", "BTC_GAME_BOT"):
+            launch_env[key] = None
     launch_env["BT3_COMPETITIVE_LOADER_VERSION"] = APP_VERSION_TEXT
     launch_env["BT3_COMPETITIVE_MEMORY_SHA256"] = online_hash or "none"
 
@@ -1984,7 +2047,7 @@ def stage_online_memory(runtime: Path) -> str | None:
     return fingerprint
 
 
-def import_ps2_card(card: Path, runtime: Path):
+def import_ps2_card(card: Path, runtime: Path, persist_config: bool = True):
     if not card.is_file():
         raise LoaderError(f"No existe la tarjeta de PCSX2: {card}")
     if not (runtime / "Tenkaichi3Decomp.exe").is_file():
@@ -2043,9 +2106,10 @@ def import_ps2_card(card: Path, runtime: Path):
         raise LoaderError("La verificación posterior a la copia falló.")
     print("[OK] Partida de PCSX2 importada y verificada.")
     fingerprint = sha256_file(destination / SAVE_NAME)
-    config = load_config()
-    config["online_memory_sha256"] = fingerprint
-    save_config(config)
+    if persist_config:
+        config = load_config()
+        config["online_memory_sha256"] = fingerprint
+        save_config(config)
     print(f"[ONLINE] SHA-256 de balance: {fingerprint}")
     print(f"Destino: {destination}")
     if backup is not None:

@@ -1,0 +1,209 @@
+{
+  "id": "17820539",
+  "title": "THE TRUNKS PROFECY I",
+  "kind": "single elimination",
+  "link": "https://challonge.com/trunksprofecyI",
+  "participants": [
+    {
+      "id": "291789172",
+      "attributes": {
+        "name": "Los Sansonitos (Pastelitø/Senko)",
+        "username": "Pastelitø",
+        "seed": 1,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "292676471",
+      "attributes": {
+        "name": "Jujutsu Mani (Storm/Chunga)",
+        "username": "Štørm",
+        "seed": 2,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "292677741",
+      "attributes": {
+        "name": "Team CP (Papayaman Salva)",
+        "username": "LetrasChinasss",
+        "seed": 3,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "292678604",
+      "attributes": {
+        "name": "SinPresa (Gabo/Maicol)",
+        "username": "Gabogz28",
+        "seed": 4,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "292764314",
+      "attributes": {
+        "name": "PANXO MI CARTA (Ale/Panxo)",
+        "username": "ALE_132",
+        "seed": 5,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "292770237",
+      "attributes": {
+        "name": "quiero queque eltunas/Max1god",
+        "username": "Eltunas15",
+        "seed": 6,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "293165766",
+      "attributes": {
+        "name": "Team Boss (Marian/Zorienn)",
+        "username": "Zorienn",
+        "seed": 7,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "293568472",
+      "attributes": {
+        "name": "Modding de Cartón (Deluxe/GaboMoretti)",
+        "username": "MyNameIsDeluxe",
+        "seed": 8,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "293570392",
+      "attributes": {
+        "name": "Senko paga la plata (Cucaracha/ Rising)",
+        "username": "NSoul_",
+        "seed": 9,
+        "final_rank": null
+      }
+    },
+    {
+      "id": "293588302",
+      "attributes": {
+        "name": "AMANZANDROIDES TEAM (PREST/Shulo)",
+        "username": "IM_PREST",
+        "seed": 10,
+        "final_rank": null
+      }
+    }
+  ],
+  "matches": [
+    {
+      "id": "475921596",
+      "round": 1,
+      "identifier": "A",
+      "state": "open",
+      "p1": "293568472",
+      "p2": "293570392",
+      "name1": "Modding de Cartón (Deluxe/GaboMoretti)",
+      "name2": "Senko paga la plata (Cucaracha/ Rising)",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921597",
+      "round": 1,
+      "identifier": "B",
+      "state": "open",
+      "p1": "293165766",
+      "p2": "293588302",
+      "name1": "Team Boss (Marian/Zorienn)",
+      "name2": "AMANZANDROIDES TEAM (PREST/Shulo)",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921598",
+      "round": 2,
+      "identifier": "C",
+      "state": "pending",
+      "p1": "291789172",
+      "p2": "",
+      "name1": "Los Sansonitos (Pastelitø/Senko)",
+      "name2": "Por decidir",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921599",
+      "round": 2,
+      "identifier": "D",
+      "state": "open",
+      "p1": "292678604",
+      "p2": "292764314",
+      "name1": "SinPresa (Gabo/Maicol)",
+      "name2": "PANXO MI CARTA (Ale/Panxo)",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921600",
+      "round": 2,
+      "identifier": "E",
+      "state": "pending",
+      "p1": "292676471",
+      "p2": "",
+      "name1": "Jujutsu Mani (Storm/Chunga)",
+      "name2": "Por decidir",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921601",
+      "round": 2,
+      "identifier": "F",
+      "state": "open",
+      "p1": "292677741",
+      "p2": "292770237",
+      "name1": "Team CP (Papayaman Salva)",
+      "name2": "quiero queque eltunas/Max1god",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921602",
+      "round": 3,
+      "identifier": "G",
+      "state": "pending",
+      "p1": "",
+      "p2": "",
+      "name1": "Por decidir",
+      "name2": "Por decidir",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921603",
+      "round": 3,
+      "identifier": "H",
+      "state": "pending",
+      "p1": "",
+      "p2": "",
+      "name1": "Por decidir",
+      "name2": "Por decidir",
+      "scores": "0 - 0",
+      "winner": ""
+    },
+    {
+      "id": "475921604",
+      "round": 4,
+      "identifier": "I",
+      "state": "pending",
+      "p1": "",
+      "p2": "",
+      "name1": "Por decidir",
+      "name2": "Por decidir",
+      "scores": "0 - 0",
+      "winner": ""
+    }
+  ],
+  "updated": 1792177312.474
+}
