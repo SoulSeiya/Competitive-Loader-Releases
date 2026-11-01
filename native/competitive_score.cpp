@@ -38,6 +38,9 @@ static bool fightLive, battleSeen;
 static uint32_t battleSeenTick;
 static int pendingExitPad = -1;
 static unsigned pendingExitTick;
+// Frozen for each native session; never depends on asynchronous UI state mid-fight.
+static bool rankedStartSession;
+#include "competitive_ranked_input.cpp"
 // ---- offline practice against the CPU (rules from the Loader, read once) ----
 #include "competitive_practice.h"
 static CompetitivePracticeRules practiceRules;
@@ -137,6 +140,7 @@ extern "C" void Competitive_ScoreBeginTick(unsigned tick) {
 }
 
 extern "C" void Competitive_ScoreSessionBegin(int role, const char *address, int port) {
+    rankedStartSession = risingRankedSession();
     competitiveWindowUpdate(true);
     SDL_LockSpinlock(&scoreLock);
     tracker.reset();
@@ -149,6 +153,7 @@ extern "C" void Competitive_ScoreSessionBegin(int role, const char *address, int
 }
 
 extern "C" void Competitive_ScoreSessionEnd(void) {
+    rankedStartSession = false;
     if (tracker.setWinner && tracker.target)
         ScoreLog(stderr, "btc: set_result P1=%u P2=%u target=%u\n", tracker.wins[0], tracker.wins[1], tracker.target);
     ScoreLog(stderr, "btc: session_end\n");

@@ -1,18 +1,18 @@
-# Rising Battle 2.0.1 — Diagnósticos y protección ante desync
+# Rising Battle 2.0.2 — Start bloqueado en combate ranked
 
-- Envío automático de resúmenes técnicos al confirmarse un desync, activado por defecto y desactivable en Ajustes → Diagnósticos.
-- Botón «Enviar diagnósticos anteriores» para revisar sesiones ya guardadas. Requiere confirmación en ese PC y evita duplicados.
-- Los informes contienen versiones, huellas de datos/parches, reglas, conexión y primer frame divergente. No envían chats, rutas, ISO, memory ni archivos completos del juego.
-- Panel privado del equipo BTC para comparar ambos lados. Personaje y técnica aún no se capturan automáticamente.
-- Ranked: se corrige la derrota prematura que podía asignarse al cerrar el juego después de un desync, antes de recibir el aviso del rival. Si ambos confirman fallo, el set se anula sin puntos ni abandono. Los abandonos normales mantienen su penalización; un aviso unilateral de fallo no basta para anular el set.
-- Motor BTC incluido fijo en 0.1.38.1. Se conservan datos modificados BTC, reglas FT2 / 360 s / máximo 2 personajes, payload de combate y diseño aprobado.
+- Start se ignora durante los combates ranked activos para impedir abrir el menú de pausa y salir a selección en mitad de la pelea.
+- El filtro actúa sobre ambos mandos y mantiene los demás botones. Selección de personajes, resultados, duelos casuales y offline conservan sus controles.
+- Reconoce también ranked iniciada con el juego ya abierto desde el Loader.
+- Se mantienen los diagnósticos automáticos de 2.0.1, motor BTC fijo 0.1.38.1, diseño aprobado y reglas FT2 / 360 segundos / máximo 2 personajes.
 
-## Instalación y actualización
+## Actualizar
 
-Extrae el ZIP y ejecuta Competitive Loader.exe, o usa Buscar actualizaciones en el cliente anterior. El ZIP no incluye ISO, memory, perfiles ni credenciales.
+Usa Buscar actualizaciones o descarga y extrae el ZIP. Ambos jugadores deben actualizar: el parche cambia la huella de compatibilidad y las búsquedas ranked de versiones distintas quedan separadas. No hace falta reinstalar los datos si ya usas el motor BTC 0.1.38.1.
 
-Si tu instalación todavía usa el motor 0.1.35.x del Loader 1.5.9, prepara una instalación nueva desde tu propia ISO en otra carpeta. Actualizar el EXE del Loader no migra ese motor antiguo automáticamente.
+Si todavía usas el motor 0.1.35.x del antiguo Loader 1.5.9, prepara una instalación nueva desde tu ISO en otra carpeta; actualizar el Loader no migra ese motor automáticamente.
 
-## Estado de verificación
+## Verificación
 
-132 pruebas Python locales y suites del servicio aprobadas. EXE comprobados en Windows. Servicio y panel privado verificados con una subida histórica real; la prueba de desync nuevo entre dos PCs queda pendiente. La corrección ranked tiene una prueba de regresión que falla antes y pasa después del arreglo. Los diagnósticos ayudan a investigar las causas; no identifican automáticamente el ataque exacto.
+Regresión nativa comprobada: falla antes del arreglo y pasa después, incluyendo ambos mandos y los modos que deben conservar Start. Suite Python local:132 pruebas, una omitida. Arranque real del EXE en Windows y contrato del parche contra el motor 0.1.38.1 comprobados; CSS aprobado idéntico. La prueba de una partida ranked real entre dos PCs con este parche está pendiente. No se han asignado puntos retroactivos al incidente reportado.
+
+El paquete no incluye ISO, memory, perfiles, credenciales ni registros personales.

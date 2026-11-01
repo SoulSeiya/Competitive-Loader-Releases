@@ -266,6 +266,12 @@ class WebClientTests(unittest.TestCase):
         self.bridge.submit.assert_not_called()
         self.assertIn('old-ranked',self.api._ranked_terminal)
 
+    def test_ranked_launch_marks_only_its_room_for_native_start_lock(self):
+        self.api._ranked.snapshot={'match':{'id':'rank','room_code':'NEW123','finished':False}}
+        self.api._ranked.launches.put({'room_code':'BTC-NEW123','token':'test-token'})
+        self.tick_once()
+        self.assertEqual(self.bridge.ranked_room_code,'BTC-NEW123')
+
     def test_stale_ranked_launch_is_not_assigned_to_another_active_set(self):
         self.api._ranked.snapshot={'match':{'id':'new-ranked','room_code':'NEW123','finished':False}}
         self.api._ranked.launches.put({'room_code':'BTC-OLD123','token':'test-token'})

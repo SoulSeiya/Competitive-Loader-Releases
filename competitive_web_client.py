@@ -109,6 +109,7 @@ class ClientAPI:
                 image.build(0x60000000,image.pe.preferred_base)
                 self._bridge.runtime=runtime
                 launch_env={'BTC_ROOM_BRIDGE':self._bridge.name,'BT3_NET_NAME':self._store.profile()['name']}
+                launch_env['BTC_RANKED_SESSION']='1' if ranked_id else '0'
                 if core.load_config().get('fast_start',True):launch_env['BTC_FAST_START']='1'
                 launch_env['BTC_PRECISE_TIMING']='1' if core.load_config().get('precise_timing',False) else '0'
                 launch_env['BTC_FAST_MENU_ART']='1' if core.load_config().get('fast_menu_art',True) else '0'
@@ -304,6 +305,7 @@ class ClientAPI:
                     match=(self._ranked.snapshot or {}).get('match') or {}
                     if match and not match.get('finished') and launch['room_code']=='BTC-'+match['room_code']:
                         self._ranked_launches[match['id']]=launch['room_code']
+                        self._bridge.ranked_room_code=launch['room_code']
                         self._remember_live_duel(launch);self._pending_launch=(launch,time.monotonic()+120)
                 except queue.Empty:pass
                 match=(self._ranked.snapshot or {}).get('match')

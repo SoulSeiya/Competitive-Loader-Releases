@@ -83,6 +83,7 @@ class RoomBridge:
         self.client = client
         self.preserve_membership = preserve_membership
         self.runtime = None
+        self.ranked_room_code = None
         self.game_pid = None
         self.game_bots = None
         self.observer = None
@@ -128,7 +129,7 @@ class RoomBridge:
         state.invite = encoded(self.invite, 385)
         if self.snapshot:
             s = self.snapshot
-            state.connected = 1
+            state.connected = 1 | (2 if self.ranked_room_code and s.get('room_code') == self.ranked_room_code else 0)
             state.self_id, state.host_id = s["self_id"], s["host_id"]
             state.capacity, state.title = s["capacity"], encoded(s["title"], 97)
             state.count = len(s["users"])

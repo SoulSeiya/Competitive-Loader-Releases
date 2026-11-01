@@ -7,6 +7,8 @@ import unittest
 
 
 class ScoreTests(unittest.TestCase):
+    def test_ranked_start_is_blocked_only_during_live_ranked_combat(self):
+        self._native("test_ranked_input_native.cpp", "Ranked Start OK")
     def test_team_selection_enforces_cap_and_preserves_edit_navigation(self):
         self._native("test_team_limit_native.cpp", "Team limit OK")
     def test_spectator_capture_never_exports_prediction_or_overwrites_history(self):

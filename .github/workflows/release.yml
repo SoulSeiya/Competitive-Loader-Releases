@@ -29,7 +29,7 @@ jobs:
           $env:TMP = $env:RUNNER_TEMP
           python -m pip install -r requirements-build.txt
           if (Test-Path 'competitive_web_client.py') {
-            python -m unittest tests.test_diagnostic_history tests.test_diagnostic_reports tests.test_window_chrome tests.test_profile_identity tests.test_challonge_client tests.test_challonge_shared tests.test_fresh_installation tests.test_duel_presentation tests.test_ranked_client tests.test_web_client tests.test_room_cleanup tests.test_updater tests.test_github_releases tests.test_client_updates tests.test_social_client tests.test_candidate_profile
+            python -m unittest tests.test_score.ScoreTests.test_ranked_start_is_blocked_only_during_live_ranked_combat tests.test_rising_room.BridgeTests.test_ranked_bit_is_bound_to_the_exact_room_and_clears_for_casual tests.test_diagnostic_history tests.test_diagnostic_reports tests.test_window_chrome tests.test_profile_identity tests.test_challonge_client tests.test_challonge_shared tests.test_fresh_installation tests.test_duel_presentation tests.test_ranked_client tests.test_web_client tests.test_room_cleanup tests.test_updater tests.test_github_releases tests.test_client_updates tests.test_social_client tests.test_candidate_profile
           } else { python -m unittest discover -s tests -v }
           if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas' }
           $version = python -c "import competitive_loader as c; print('.'.join(map(str,c.APP_VERSION)))"

@@ -91,6 +91,23 @@ static void risingRead() {
     haveState = true;
 }
 
+static bool risingRankedSession() {
+    // Shared header ABI is unchanged: bit 0 is connected, bit 1 is ranked.
+    // Capture once when the net session begins, including an already-open game.
+    if (!risingConnectBridge()) return false;
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        const uint32_t before = risingShared->state_seq;
+        if (before & 1) continue;
+        MemoryBarrier();
+        const uint32_t flags = risingShared->state.connected;
+        MemoryBarrier();
+        if (before == risingShared->state_seq) return (flags & 3) == 3;
+    }
+    // A freshly auto-launched ranked game also carries its session provenance.
+    const char *ranked = SDL_getenv("BTC_RANKED_SESSION");
+    return ranked && strcmp(ranked, "1") == 0;
+}
+
 static bool risingBusy() {
     return !risingShared || risingShared->command_seq != risingShared->ack_seq;
 }

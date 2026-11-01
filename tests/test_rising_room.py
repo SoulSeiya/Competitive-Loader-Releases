@@ -102,6 +102,22 @@ class RoomTests(unittest.TestCase):
 
 @unittest.skipUnless(os.name == "nt", "Windows named shared memory")
 class BridgeTests(unittest.TestCase):
+    def test_ranked_bit_is_bound_to_the_exact_room_and_clears_for_casual(self):
+        from rising_room_bridge import RoomBridge, Shared
+        from types import SimpleNamespace
+        # Real publisher with an in-memory shared struct; no sockets or account.
+        bridge=object.__new__(RoomBridge)
+        bridge.profile_store=None;bridge.notice='';bridge.address='';bridge.key='';bridge.invite=''
+        bridge.shared=Shared();bridge.ranked_room_code='BTC-RANK12'
+        base=dict(self_id=1,host_id=1,capacity=2,title='Room',users=[],messages=[])
+        bridge.snapshot=dict(base,room_code='BTC-RANK12');bridge._publish()
+        self.assertEqual(bridge.shared.state.connected,3)
+        bridge.snapshot=dict(base,room_code='BTC-CASUAL');bridge._publish()
+        self.assertEqual(bridge.shared.state.connected,1)
+        bridge.snapshot=None;bridge._publish();self.assertEqual(bridge.shared.state.connected,0)
+        bridge.ranked_room_code=None;bridge.snapshot=dict(base);bridge._publish()
+        self.assertEqual(bridge.shared.state.connected,1)
+
     def test_acknowledgement_waits_for_published_state(self):
         import threading
         from rising_room_bridge import RoomBridge,Command

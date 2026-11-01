@@ -29,10 +29,11 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (2, 0, 1)
+APP_VERSION = (2, 0, 2)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "Ranked: Start bloqueado durante el combate; selección, resultados, casual y offline conservan controles.\n"
     "Diagnósticos técnicos automáticos de desync, activados por defecto y desactivables en Ajustes.\n"
     "Envío opcional de resúmenes de registros anteriores, sin chats, rutas ni archivos del juego.\n"
     "Panel privado BTC para comparar versiones, datos y primer frame divergente de ambos jugadores.\n"
@@ -220,6 +221,7 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
         CALL_WRAPPERS["competitive_score.o"]["Port_LobbyHelloAsk"] = "Competitive_MenuHello"
     if session_score and actual == BTC_1381_HASH:
         CALL_WRAPPERS["competitive_score.o"]["vblank_wait"] = "Competitive_PaceWait"
+        CALL_WRAPPERS["competitive_score.o"]["Pad_UpdateGameButtons"] = "Competitive_RankedPadUpdate"
         CALL_WRAPPERS["competitive_menu_art.o"] = {
             "MenuLabels_Art": "Competitive_MenuArt",
             "MenuLabels_ArtKey": "Competitive_MenuArtKey",
