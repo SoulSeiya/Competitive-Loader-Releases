@@ -78,6 +78,30 @@ class WebClientTests(unittest.TestCase):
         for kind in ('play','practice','ranked_queue','create','setup_choose','setup_start'):
             self.assertFalse(self.api.command(kind)['ok'])
 
+    def test_local_validation_error_remains_visible_after_a_background_poll(self):
+        import time
+        self.api._social.snapshot={'me':{'id':'fixture'}}
+        self.api._ranked.snapshot={'rules':{'ft':2,'seconds':360,'characters':2}}
+        with patch('ranked_client.compatibility_key',side_effect=ValueError('Memory no compatible')):
+            self.assertTrue(self.api.command('ranked_queue')['ok'])
+            until=time.monotonic()+3
+            while self.api._busy and time.monotonic()<until:time.sleep(.01)
+        self.api._ranked._receive({'queued':False,'rules':{'ft':2,'seconds':360,'characters':2}})
+        self.assertEqual(self.api.state()['ranked_error'],'Memory no compatible')
+        self.assertTrue(self.api._ranked.commands.empty())
+
+    def test_successful_ranked_check_does_not_leave_the_footer_checking(self):
+        import time
+        self.api._social.snapshot={'me':{'id':'fixture'}}
+        self.api._ranked.snapshot={'rules':{'ft':2,'seconds':360,'characters':2}}
+        with patch('ranked_client.compatibility_key',return_value='a'*64):
+            self.assertTrue(self.api.command('ranked_queue')['ok'])
+            until=time.monotonic()+3
+            while self.api._busy and time.monotonic()<until:time.sleep(.01)
+        self.assertFalse(self.api._busy)
+        self.assertEqual(self.api._ranked.commands.get_nowait(),('queue',{'compat':'a'*64}))
+        self.assertEqual(self.api._status,'Instalación comprobada.')
+
     def test_ranked_queue_waits_for_360_service_and_keeps_casual_modes_available(self):
         self.api._ranked.snapshot={'rules':{'ft':2,'seconds':180,'characters':2}}
         self.assertFalse(self.api._ranked_rules_ready())

@@ -56,6 +56,7 @@ class RankedClient:
 class RankedManager:
     def __init__(self,store,telemetry):
         self.store=store;self.telemetry=telemetry;self.snapshot=None;self.status='Conectando con la ranked beta…'
+        self.error=None
         self.commands=queue.Queue(maxsize=8);self.launches=queue.Queue();self.stop=threading.Event();self.thread=None
         self._bound_match=None;self._bound_session=None
         self._baseline_serial=0;self._baseline_session=None
@@ -64,7 +65,14 @@ class RankedManager:
         if self.thread:return
         self.thread=threading.Thread(target=self._work,name='BTC ranked beta',daemon=True);self.thread.start()
 
-    def submit(self,op,**values):self.commands.put_nowait((op,values))
+    def submit(self,op,**values):
+        previous=self.status
+        if op=='queue':self.status='Solicitando búsqueda ranked…'
+        elif op=='cancel_queue':self.status='Cancelando búsqueda…'
+        try:self.commands.put_nowait((op,values))
+        except queue.Full:
+            self.status=previous
+            raise
 
     def _heartbeat(self):
         match=(self.snapshot or {}).get('match')
@@ -82,7 +90,11 @@ class RankedManager:
         if match and match['id']!=self._bound_match:
             current=self.telemetry();self._baseline_serial=current.get('serial',0);self._baseline_session=current.get('session')
             self._bound_match=match['id'];self._bound_session=None
-        self.snapshot=result;self.status='Ranked beta conectada.'
+        self.snapshot=result;self.error=None
+        self.status=('Buscando un rival compatible…' if result.get('queued') else
+                     'Rival encontrado. Preparando la partida…' if match and not match.get('finished') and match.get('phase')!='playing' else
+                     'Set en curso · continúa en el juego.' if match and not match.get('finished') else
+                     'Listo para buscar ranked.')
         launch=result.get('launch')
         if launch:self.launches.put(launch)
 
@@ -101,7 +113,7 @@ class RankedManager:
                     last=time.monotonic();heartbeat=self._heartbeat() if active else {}
                     self._receive(client.send('heartbeat' if heartbeat else 'poll',**heartbeat));failures=0
             except (OSError,RoomError,ValueError) as exc:
-                self.status=str(exc);failures+=1;self.stop.wait(min(25,2**min(failures,4)))
+                self.status=str(exc);self.error=str(exc);failures+=1;self.stop.wait(min(25,2**min(failures,4)))
 
     def close(self):
         self.stop.set()

@@ -5,6 +5,28 @@ from session_diagnostics import SessionDiagnostics
 
 
 class RankedClientTests(unittest.TestCase):
+    def test_search_status_tracks_the_server_instead_of_a_stale_check_label(self):
+        manager=RankedManager(None,lambda:{})
+        manager._receive({'queued':True})
+        self.assertEqual(manager.status,'Buscando un rival compatible…')
+        manager._receive({'queued':False})
+        self.assertEqual(manager.status,'Listo para buscar ranked.')
+        manager._receive({'match':{'id':'set','finished':None,'phase':'connecting'}})
+        self.assertEqual(manager.status,'Rival encontrado. Preparando la partida…')
+
+    def test_queue_service_error_is_exposed_even_with_a_previous_snapshot(self):
+        from unittest.mock import patch
+        from rising_room import RoomError
+        manager=RankedManager(None,lambda:{})
+        manager.snapshot={'queued':False};manager.submit('queue',compat='a'*64)
+        def reject(*args,**kwargs):
+            manager.stop.set()
+            raise RoomError('Error de búsqueda de prueba')
+        client=MagicMock();client.send.side_effect=reject
+        with patch('ranked_client.RankedClient',return_value=client):manager._work()
+        self.assertEqual(manager.error,'Error de búsqueda de prueba')
+
+
     def test_protocol_accepts_migration_rules_but_rejects_other_ranked_formats(self):
         import io,json
         from ranked_client import RankedClient

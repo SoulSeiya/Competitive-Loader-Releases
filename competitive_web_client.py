@@ -43,6 +43,7 @@ class ClientAPI:
         self._started=False
         from ranked_client import RankedManager
         self._ranked=RankedManager(self._store,self._ranked_telemetry)
+        self._ranked_validation_error=None
         self._ranked_terminal=set()
         self._ranked_launches={};self._ranked_game_sessions={}
         self._temporary_rooms=set();self._casual_cancelled_rooms=set();self._casual_bindings={};self._last_duel=None
@@ -356,7 +357,7 @@ class ClientAPI:
         return {'diagnostics':{'enabled':diagnostic_preference(self._store),'status':self._reports.status,'last_report':self._reports.last_id},'duel_view':duel,'profile':self._store.profile(),'identity':dict(self._store.identity_state(),**self._identity.snapshot()),'avatar':self._avatar,'social':self._social.snapshot,
                 'social_status':self._social.status,'conversation':self._social.conversation,
                 'room':self._bridge.snapshot,'rooms':self._bridge.directory,'room_code':self._bridge.invite,
-                'status':self._status,'busy':self._busy,'running':self._running(),
+                'status':self._status,'busy':self._busy,'running':self._running(),'ranked_error':self._ranked_validation_error or self._ranked.error,
                 'installed':(self._runtime()/'Tenkaichi3Decomp.exe').is_file() and (self._runtime()/'gamedata'/'.competitive-v8.4.1.json').is_file(),'runtime':str(self._runtime()),
                 'setup':dict(self._setup),
                 'version':core.APP_VERSION_TEXT,'highlights':core.VERSION_HIGHLIGHTS,
@@ -525,7 +526,15 @@ class ClientAPI:
                 if not self._social.snapshot:raise ValueError('Espera a que el perfil BTC se conecte.')
                 if self._ranked_telemetry().get('connected'):raise ValueError('Termina tu combate online antes de buscar ranked.')
                 from ranked_client import compatibility_key
-                self._work('Comprobando la instalación para ranked…',lambda:self._ranked.submit('queue',compat=compatibility_key(self._runtime())),allow_game=True)
+                def prepare_ranked():
+                    self._ranked_validation_error=None
+                    try:compat=compatibility_key(self._runtime())
+                    except Exception as exc:
+                        self._ranked_validation_error=str(exc)
+                        raise
+                    self._ranked.submit('queue',compat=compat)
+                    self._status='Instalación comprobada.'
+                self._work('Comprobando la instalación para ranked…',prepare_ranked,allow_game=True)
             elif kind=='ranked_cancel':self._ranked.submit('cancel_queue')
             elif kind=='ranked_refresh':self._ranked.submit('poll')
             elif kind=='ranked_forfeit':
@@ -645,6 +654,14 @@ def main():
                 result['duel_alert_fixture']['removed']=window.evaluate_js("!duelAlert.open")
                 offer=result['duel_alert_fixture']
                 if not offer['open'] or not offer['fits'] or not offer['removed'] or not offer['focusedReject'] or offer['buttons']!=2 or offer['errors']:raise RuntimeError('Falló el aviso automático de duelo.')
+                # Render the actual ranked UI with fixture state; no queue request is sent.
+                window.evaluate_js("window.rankBackup=state;state={...state,busy:false,status:'Comprobando la instalación para ranked…',ranked_status:'Buscando un rival compatible…',ranked_error:null,ranked_rules_ready:true,ranked:{queued:true,me:{rating:1000,tier:'Bronce',wins:0,losses:0,played:0,blocked_until:0},leaderboard:[],history:[]}};showView('ranked');renderState()")
+                result['ranked_status_fixture']=window.evaluate_js("({footer:document.querySelector('#client-status').textContent,center:document.querySelector('#rank-state').textContent,cancel:!document.querySelector('#rank-cancel').hidden,errors:window.btcRenderErrors.slice()})")
+                window.evaluate_js("state.ranked_error='Error de búsqueda de prueba';renderState()")
+                result['ranked_status_fixture']['errorVisible']=window.evaluate_js("document.querySelector('#rank-state').textContent==='Error de búsqueda de prueba'&&document.querySelector('#client-status').textContent==='Error de búsqueda de prueba'")
+                window.evaluate_js("state=window.rankBackup;showView('home');renderState()")
+                ranked_proof=result['ranked_status_fixture']
+                if ranked_proof['footer']!='Buscando un rival compatible…' or ranked_proof['center']!='Buscando un rival compatible…' or not ranked_proof['cancel'] or not ranked_proof['errorVisible'] or ranked_proof['errors']:raise RuntimeError('Falló el estado visible de ranked.')
                 import hashlib
                 result['css_sha256']=hashlib.sha256(result.pop('styles').encode()).hexdigest()
                 manifest=json.loads((core.RESOURCE_ROOT/'web_client'/'design-integrity.json').read_text(encoding='utf-8'))

@@ -29,10 +29,11 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (2, 0, 2)
+APP_VERSION = (2, 0, 3)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
+    "Ranked: el estado de búsqueda se actualiza al finalizar la comprobación y muestra errores del servicio.\n"
     "Ranked: Start bloqueado durante el combate; selección, resultados, casual y offline conservan controles.\n"
     "Diagnósticos técnicos automáticos de desync, activados por defecto y desactivables en Ajustes.\n"
     "Envío opcional de resúmenes de registros anteriores, sin chats, rutas ni archivos del juego.\n"
