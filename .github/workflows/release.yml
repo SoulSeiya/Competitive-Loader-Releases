@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m pip install -r requirements-build.txt
           if (Test-Path 'competitive_web_client.py') {
-            python -m unittest tests.test_window_chrome tests.test_profile_identity tests.test_challonge_client tests.test_challonge_shared tests.test_fresh_installation tests.test_duel_presentation tests.test_ranked_client tests.test_web_client tests.test_room_cleanup tests.test_updater tests.test_github_releases tests.test_client_updates tests.test_social_client tests.test_candidate_profile
+            python -m unittest tests.test_diagnostic_history tests.test_diagnostic_reports tests.test_window_chrome tests.test_profile_identity tests.test_challonge_client tests.test_challonge_shared tests.test_fresh_installation tests.test_duel_presentation tests.test_ranked_client tests.test_web_client tests.test_room_cleanup tests.test_updater tests.test_github_releases tests.test_client_updates tests.test_social_client tests.test_candidate_profile
           } else { python -m unittest discover -s tests -v }
           if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas' }
           $version = python -c "import competitive_loader as c; print('.'.join(map(str,c.APP_VERSION)))"
@@ -71,7 +71,12 @@ jobs:
         run: |
           gh release view '${{ github.ref_name }}' *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload '${{ github.ref_name }}' release/CompetitiveLoader-windows-x64.zip --clobber
+            $assets = gh release view '${{ github.ref_name }}' --json assets --jq '.assets[].name'
+            if ($assets -contains 'CompetitiveLoader-windows-x64.zip') {
+              Write-Output 'Se conserva el paquete de la Release ya verificado; no se reemplaza con una reconstruccion.'
+            } else {
+              gh release upload '${{ github.ref_name }}' release/CompetitiveLoader-windows-x64.zip
+            }
           } else {
             gh release create '${{ github.ref_name }}' release/CompetitiveLoader-windows-x64.zip --title 'Competitive Loader ${{ github.ref_name }}' --notes-file RELEASE-NOTES.md
           }

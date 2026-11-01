@@ -29,34 +29,15 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (2, 0, 0)
+APP_VERSION = (2, 0, 1)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
-    "Barra superior oscura y avisos sociales junto al amigo, sin bandeja intermedia.\n"
-    "Perfil local de primer inicio y vinculación opcional de nombre/avatar con Challonge.\n"
-    "Solicitudes de duelo automáticas en pantalla: rival, reglas, Aceptar y Rechazar.\n"
-    "Marcador FT compacto y ligero: nombres sin panel de fondo y puntuación con transparencia.\n"
-    "Presentación más breve y resultado GG sin oscurecer toda la pantalla.\n"
-    "Ranked beta: FT2, 360 segundos y máximo 2 personajes.\n"
-    "Temporización Windows alternativa opcional; desactivada por defecto para comparar en tu PC.\n"
-    "Filtro rápido de texturas de idiomas: evita leer imágenes completas que no coinciden.\n"
-    "Asistente de instalación corregido: rutas largas sin desbordamiento ni botones cortados.\n"
-    "Instalación desde cero: elige carpeta, ISO competitiva y memory desde el cliente.\n"
-    "Motor BTC incluido, preparación segura y estado de cada etapa sin descargas del decomp.\n"
-    "Un resultado ranked antiguo ya no cierra el juego de un duelo nuevo.\n"
-    "Cierre del juego vinculado al set ranked y a la instancia que abrió el cliente.\n"
-    "Práctica FT contra la CPU en dificultad máxima, con marcador, presentación y GG.\n"
-    "Team battle con límite de personajes: ya no se traba el cursor al completar el equipo.\n"
-    "En el juego: presentación de cada combate, punto de set y pantalla GG con el set completo.\n"
-    "El marcador respeta tu lado del HUD y marca cuál eres.\n"
-    "Desafío sin respuesta o rechazado: el cliente se libera solo.\n"
-    "Duelos: nombres de jugadores, FT y victorias confirmadas en directo.\n"
-    "Resultado final, historial y revancha con aceptación del rival.\n"
-    "El duelo abre el juego y lo cierra al terminar si lo abrió automáticamente.\n"
-    "Inicio ágil con Skip de logos, intro y copyright.\n"
-    "Menú online sin torneos; identidad UT en los ajustes.\n"
-    "Salas, amigos y ranked beta. Motor BTC fijo."
+    "Diagnósticos técnicos automáticos de desync, activados por defecto y desactivables en Ajustes.\n"
+    "Envío opcional de resúmenes de registros anteriores, sin chats, rutas ni archivos del juego.\n"
+    "Panel privado BTC para comparar versiones, datos y primer frame divergente de ambos jugadores.\n"
+    "Ranked: evita asignar una derrota prematura si el juego se cierra tras un desync.\n"
+    "Motor BTC fijo 0.1.38.1; conserva el diseño, reglas FT2/360/2 y parches de combate."
 )
 
 COMPETITIVE_SLUS_SHA1 = "28992f0d472bbb6b67cc193bb7d79b8a78bd7feb"

@@ -399,7 +399,7 @@ class WebClientTests(unittest.TestCase):
         runtime=self.folder/'runtime';(runtime/'gamedata').mkdir(parents=True);(runtime/'Tenkaichi3Decomp.exe').write_bytes(b'MZ')
         envs=[]
         class Session:
-            def __init__(self,*a):self.path=Path('s');self.running=False;self.summary={}
+            def __init__(self,*a,**kwargs):self.path=Path('s');self.running=False;self.summary={};self.report_capture=MagicMock()
             def launch(self,exe,image,env=None):envs.append(dict(env));self.running=True;return 1
             def dispose(self):pass
             def finish(self,*a):pass

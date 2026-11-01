@@ -36,7 +36,7 @@ class RankedClientTests(unittest.TestCase):
 
     def test_native_lifecycle_and_confirmed_score_telemetry(self):
         session=object.__new__(SessionDiagnostics)
-        session.summary={};session.local=MagicMock();session.online=MagicMock()
+        session.summary={};session.local=MagicMock();session.online=MagicMock();session.report_capture=MagicMock()
         session.record_engine_line('btc: session_begin online=1')
         self.assertEqual(session.summary['ranked_serial'],1)
         session.record_engine_line('net: score confirmed tick=80 P1=2 P2=1 draws=0')
@@ -55,7 +55,7 @@ class RankedClientTests(unittest.TestCase):
 
     def test_desync_is_reset_for_next_native_session_only(self):
         session=object.__new__(SessionDiagnostics)
-        session.summary={};session.local=MagicMock();session.online=MagicMock()
+        session.summary={};session.local=MagicMock();session.online=MagicMock();session.report_capture=MagicMock()
         session.record_engine_line('the two games no longer agree')
         self.assertTrue(session.summary['ranked_failed'])
         session.record_engine_line('btc: session_begin online=1')
@@ -63,7 +63,7 @@ class RankedClientTests(unittest.TestCase):
 
     def test_explicit_pause_exit_and_result_survive_native_session_end(self):
         session=object.__new__(SessionDiagnostics)
-        session.summary={};session.local=MagicMock();session.online=MagicMock()
+        session.summary={};session.local=MagicMock();session.online=MagicMock();session.report_capture=MagicMock()
         session.record_engine_line('btc: session_begin online=1')
         session.record_engine_line('btc: pause_exit loser=P1 P1=1 P2=2 target=2')
         session.record_engine_line('btc: session_end')

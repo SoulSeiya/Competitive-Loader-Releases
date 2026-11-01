@@ -25,7 +25,7 @@ def make_logger(name: str, path: Path):
 
 
 class SessionDiagnostics:
-    def __init__(self, logs_root: Path, runtime: Path):
+    def __init__(self, logs_root: Path, runtime: Path, report_sink=None):
         ident = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]
         self.path = logs_root / ident
         self.path.mkdir(parents=True)
@@ -36,6 +36,8 @@ class SessionDiagnostics:
                         "started_at": datetime.now().astimezone().isoformat(),
                         "platform": platform.platform(), "status": "preparing",
                         "online_observed": False, "desync_observed": False}
+        from diagnostic_reports import DesyncCapture
+        self.report_capture=DesyncCapture(self.summary,report_sink or (lambda report:None))
         self.running = False
         self._close_event=None
         self._reader = None
@@ -56,6 +58,7 @@ class SessionDiagnostics:
 
     def record_engine_line(self, line: str):
         line = line.rstrip("\r\n")
+        self.report_capture.line(line)
         self.local.info("GAME %s", line)
         low = line.lower()
         if 'btc: session_begin online=1' in low:

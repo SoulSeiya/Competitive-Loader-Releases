@@ -18,6 +18,7 @@ from rising_room_bridge import RoomBridge
 from rising_service import DEFAULT_ROOM_SERVICE
 from session_diagnostics import SessionDiagnostics, make_logger
 from social_client import SocialManager
+from diagnostic_reports import ReportManager, preference as diagnostic_preference, duel_context
 
 core.RELEASE_PROFILE=True
 DIRECT_OFFER_TIMEOUT=130 # Service-side challenge lifetime is 120 s.
@@ -32,6 +33,7 @@ class ClientAPI:
         self._identity=ProfileLink(self._store,oauth.get('client_id',''))
         self._pending_identity=None
         self._social=SocialManager(self._store)
+        self._reports=ReportManager(self._store,core.HERE/'logs')
         self._bridge=RoomBridge(make_logger('competitive.web.room',core.HERE/'logs'/'rising-battle.log'),profile_store=self._store)
         self._session=None;self._window=None;self._busy=False;self._status='Listo para jugar.'
         self._lock=threading.Lock();self._closed=threading.Event();self._force_close=False
@@ -97,7 +99,8 @@ class ClientAPI:
             self._ranked_launches.get(ranked.get('id'))==self._bridge.invite) else None
         def launch():
             if self._session:self._session.dispose()
-            self._session=SessionDiagnostics(core.HERE/'logs',runtime)
+            self._session=SessionDiagnostics(core.HERE/'logs',runtime,report_sink=self._reports.accept)
+            self._session.report_capture.bind(duel_context(self._bridge.snapshot))
             self._auto_session=str(self._session.path) if origin=='duel' else None
             if ranked_id:self._ranked_game_sessions[ranked_id]=self._auto_session
             self._pending_game_close=None;self._practice=dict(practice) if practice else None
@@ -141,6 +144,9 @@ class ClientAPI:
         if combat.get('id') and combat.get('status')=='running':self._live_duels.setdefault(combat['id'],baseline)
 
     def _bind_live_duel(self):
+        if self._session:
+            context=duel_context(self._bridge.snapshot)
+            if context:self._session.report_capture.bind(context)
         combat=(self._bridge.snapshot or {}).get('combat') or {}
         if not combat or combat.get('status')!='running':return
         summary=self._session.summary if self._session else {}
@@ -333,7 +339,7 @@ class ClientAPI:
     def _start(self):
         if self._started:return
         self._started=True
-        self._social.start();self._ranked.start();self._check()
+        self._reports.start();self._social.start();self._ranked.start();self._check()
         threading.Thread(target=self._tick,name='BTC client state',daemon=True).start()
 
     def state(self):
@@ -345,7 +351,7 @@ class ClientAPI:
         peer=self._duel_peers.get(self._bridge.invite)
         peer_name=next((f.get('name') for f in (self._social.snapshot or {}).get('friends',[]) if f.get('id')==peer),None)
         duel=present_duel(self._bridge.snapshot,self._last_duel,self._duel_live(),self._store.profile(),peer_name,self._running(),self._busy,self._pending_duel_rules.get(self._bridge.invite))
-        return {'duel_view':duel,'profile':self._store.profile(),'identity':dict(self._store.identity_state(),**self._identity.snapshot()),'avatar':self._avatar,'social':self._social.snapshot,
+        return {'diagnostics':{'enabled':diagnostic_preference(self._store),'status':self._reports.status,'last_report':self._reports.last_id},'duel_view':duel,'profile':self._store.profile(),'identity':dict(self._store.identity_state(),**self._identity.snapshot()),'avatar':self._avatar,'social':self._social.snapshot,
                 'social_status':self._social.status,'conversation':self._social.conversation,
                 'room':self._bridge.snapshot,'rooms':self._bridge.directory,'room_code':self._bridge.invite,
                 'status':self._status,'busy':self._busy,'running':self._running(),
@@ -498,6 +504,14 @@ class ClientAPI:
                 if self._last_duel:self._dismissed_duels.add(self._last_duel['combat']['id'])
                 self._last_duel=None;self._pending_rematch=None
                 if self._bridge.invite in self._temporary_rooms and (self._bridge.snapshot or {}).get('combat',{}).get('status')=='finished':self._bridge.submit(46)
+            elif kind=='diagnostics_history':
+                self._reports.request_history()
+                self._status='Preparando el envío del historial técnico en segundo plano.'
+            elif kind=='diagnostics':
+                value=values.get('enabled')
+                if type(value)is not bool:raise ValueError('Preferencia no válida')
+                self._reports.enabled(value)
+                self._status='Diagnósticos automáticos activados.' if value else 'Diagnósticos desactivados; cola pendiente eliminada.'
             elif kind=='preferences':
                 if any(k not in ('fast_start','close_duel_game','precise_timing','fast_menu_art') or type(v)is not bool for k,v in values.items()):raise ValueError('Preferencias no válidas.')
                 config=core.load_config();config.update(values);core.save_config(config)
@@ -550,7 +564,7 @@ class ClientAPI:
     def _close(self):
         self._closed.set()
         self._identity.cancel()
-        self._ranked.close();self._social.close();self._bridge.close()
+        self._reports.close();self._ranked.close();self._social.close();self._bridge.close()
         if self._session:
             if self._running():self._session.finish('loader_closed_while_game_running')
             else:self._session.dispose()
@@ -579,7 +593,7 @@ def main():
                 result['window_chrome']=chrome
                 result['public_branding']=window.evaluate_js("({label:document.querySelector('.preview b').textContent,version:document.querySelector('.version').textContent,privateVisible:document.body.innerText.includes('CLIENTE PRIVADO'),internalVersionVisible:document.body.innerText.includes('ranked-beta'),footerFits:document.querySelector('.bottom-bar').scrollWidth<=document.querySelector('.bottom-bar').clientWidth})")
                 branding=result['public_branding']
-                if branding['label']!='BETA PÚBLICA' or branding['version']!='RISING BATTLE · 2.0.0' or branding['privateVisible'] or branding['internalVersionVisible']:raise RuntimeError('El paquete público conserva etiquetas internas.')
+                if branding['label']!='BETA PÚBLICA' or branding['version']!='RISING BATTLE · '+core.APP_VERSION_TEXT or branding['privateVisible'] or branding['internalVersionVisible']:raise RuntimeError('El paquete público conserva etiquetas internas.')
                 window.evaluate_js("showView('duel')")
                 result['duel_view']=window.evaluate_js("({players:document.querySelectorAll('.duel-player').length,status:document.querySelector('#duel-status').textContent,errors:window.btcRenderErrors.slice()})")
                 if result['duel_view']['players']!=2 or result['duel_view']['errors']:raise RuntimeError('Falló la vista de duelo integrada.')
@@ -595,6 +609,10 @@ def main():
                 result['setup_long_paths']=window.evaluate_js("({overflowX:document.querySelector('#dialog').scrollWidth>document.querySelector('#dialog').clientWidth,overflowY:document.querySelector('#dialog').scrollHeight>document.querySelector('#dialog').clientHeight,buttonsInside:(()=>{const r=document.querySelector('#dialog').getBoundingClientRect();return Array.from(document.querySelectorAll('.setup-pick')).every(b=>{const q=b.getBoundingClientRect();return q.right<=r.right&&q.left>=r.left})})(),pathsClipped:Array.from(document.querySelectorAll('.setup-path')).every(el=>el.scrollWidth>el.clientWidth)})")
                 if result['setup_long_paths']['overflowX'] or result['setup_long_paths']['overflowY'] or not result['setup_long_paths']['buttonsInside'] or not result['setup_long_paths']['pathsClipped']:raise RuntimeError('Las rutas largas desbordan el asistente.')
                 window.evaluate_js("state.setup=window.btcSetupBackup;closeDialog();showView('home')")
+                window.evaluate_js("diagnosticsDialog()")
+                result['diagnostics_view']=window.evaluate_js("({enabled:document.querySelector('#diagnostics-setting').checked,status:document.querySelector('#diagnostics-status').textContent,overflowX:document.querySelector('#dialog').scrollWidth>document.querySelector('#dialog').clientWidth,overflowY:document.querySelector('#dialog').scrollHeight>document.querySelector('#dialog').clientHeight,errors:window.btcRenderErrors.slice()})")
+                if not result['diagnostics_view']['enabled'] or result['diagnostics_view']['overflowX'] or result['diagnostics_view']['overflowY'] or result['diagnostics_view']['errors']:raise RuntimeError('Falló el diálogo de diagnósticos.')
+                window.evaluate_js("closeDialog()")
                 window.evaluate_js("performanceDialog()")
                 result['performance_view']=window.evaluate_js("({fastArt:document.querySelector('#art-performance').checked,preciseTiming:document.querySelector('#timer-performance').checked,overflowX:document.querySelector('#dialog').scrollWidth>document.querySelector('#dialog').clientWidth,overflowY:document.querySelector('#dialog').scrollHeight>document.querySelector('#dialog').clientHeight,errors:window.btcRenderErrors.slice()})")
                 if not result['performance_view']['fastArt'] or result['performance_view']['preciseTiming'] or result['performance_view']['overflowX'] or result['performance_view']['overflowY'] or result['performance_view']['errors']:raise RuntimeError('Falló la presentación de opciones de fluidez.')
