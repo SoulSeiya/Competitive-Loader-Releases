@@ -29,12 +29,12 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (2, 1, 0)
+APP_VERSION = (2, 1, 1)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
     "Diagnósticos de desync: jugadores, personajes, trajes, escenarios y habilidades observadas.",
-    "Ranked: continuación tras desync de ambos equipos con marcador confirmado; Elo normal y bono separado de juego limpio.",
+    "Ranked reanudada completada: perdedor sin pérdida de Elo y +6 puntos; ganador con Elo normal y +10 de juego limpio.",
     "El Loader descarga nuevas versiones verificadas en segundo plano y ofrece actualizar desde el botón principal.",
     "Motor BTC fijo 0.1.38.1; reglas ranked FT2, 360 segundos y 2 personajes.",
 )

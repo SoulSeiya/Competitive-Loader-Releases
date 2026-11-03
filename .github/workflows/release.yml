@@ -36,6 +36,22 @@ jobs:
           if ('${{ github.ref_type }}' -eq 'tag' -and "v$version" -ne '${{ github.ref_name }}') {
             throw 'La etiqueta y la versión del código difieren'
           }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verificar puntos ranked y reanudación del servicio
+        shell: pwsh
+        run: |
+          python service/build_bundle.py
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo al preparar el Worker' }
+          node service/test_ranked_recovery_points.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo la regresión de +6 puntos' }
+          node --experimental-sqlite service/test_ranked_recovery_final_bundle.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo la continuación ranked' }
+          node --experimental-sqlite service/test_ranked_final_bundle.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo ranked normal' }
+          node --experimental-sqlite service/test_ranked_desync_guard_final_bundle.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo la guardia de desync' }
       - name: Construir paquete
         shell: pwsh
         run: |

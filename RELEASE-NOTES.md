@@ -1,3 +1,17 @@
+# Rising Battle 2.1.1 — Puntos al completar una ranked reanudada
+
+- Al completar el FT reanudado después de un desync confirmado por ambos, el perdedor no pierde Elo y recibe +6 puntos de ranked. Sustituye la pérdida normal y el bono separado de +3 de 2.1.0.
+- El ganador conserva sus puntos Elo normales y el bono separado de +10 de juego limpio.
+- Se aplica una sola vez. Los abandonos y las desconexiones sin resultado confirmado no conceden esta protección; una ranked normal conserva su cálculo anterior.
+- La pantalla de continuación consulta la regla activa del servidor para explicar correctamente el resultado.
+- No modifica resultados anteriores, reinicia puntos ni cambia las reglas FT2 / 360 s / 2 personajes. Motor BTC fijo 0.1.38.1, datos BTC y CSS conservados.
+
+Prueba de regresión: falla con 2.1.0 (988 en vez de 1006 al perder una revancha completada partiendo de 1000) y pasa con el ajuste. La prueba de servicio usa SQLite local; falta validación en una nueva ranked humana entre dos PCs.
+
+Requiere activar el ajuste en el servicio. No incluye ISO, memory, perfiles, credenciales ni registros personales.
+
+---
+
 # Rising Battle 2.1.0 — Diagnósticos y continuidad ranked
 
 - El informe automático de desync reúne jugadores, personajes activos, número de traje, escenario inicial/actual y habilidades observadas cerca de la primera divergencia. Solo envía datos técnicos filtrados; no los TXT completos, ISO, memory ni perfiles. Puedes desactivarlo en Ajustes.

@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(2, 1, 0, 2100),
-    prodvers=(2, 1, 0, 2100),
+    filevers=(2, 1, 1, 2101),
+    prodvers=(2, 1, 1, 2101),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,12 +16,12 @@ VSVersionInfo(
         [
           StringStruct('CompanyName', 'Rising'),
           StringStruct('FileDescription', 'Rising Battle - Cliente BTC Competitive Edition'),
-          StringStruct('FileVersion', '2.1.0'),
+          StringStruct('FileVersion', '2.1.1'),
           StringStruct('InternalName', 'Competitive Loader'),
           StringStruct('LegalCopyright', 'Decomp: z3xox | Competitive Loader: Rising'),
           StringStruct('OriginalFilename', 'Competitive Loader.exe'),
           StringStruct('ProductName', 'Rising Battle'),
-          StringStruct('ProductVersion', '2.1.0')
+          StringStruct('ProductVersion', '2.1.1')
         ]
       )
     ]),

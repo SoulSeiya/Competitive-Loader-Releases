@@ -249,6 +249,7 @@ function recoveryControls(match){
  const a=document.createElement('button');a.className='primary';a.textContent=match.recovery?.accepted?'Aceptado · esperando al rival':'Continuar '+score.join(' : ');a.disabled=state.busy||!!match.recovery?.accepted;a.onclick=()=>recoveryChoice(true);
  const b=document.createElement('button');b.className='secondary';b.textContent='Salir sin puntos';b.disabled=state.busy;b.onclick=()=>recoveryChoice(false);area.append(a,b);return area;
 }
+function recoveryRewardText(){return state?.ranked?.features?.recovery_loser_rating===6?'Al completar el FT: el ganador recibe Elo normal y +10 de juego limpio por separado. El perdedor no pierde Elo y recibe +6 puntos de ranked. Se aplica una sola vez; abandonar no concede esta protección.':'Al completar el FT: Elo normal y bono de juego limpio, +10 al ganador y +3 al perdedor, una sola vez.';}
 function renderRankedRecovery(){
  const match=state?.ranked?.match;
  if(!match||match.finished||match.phase!=='recovering'){if($('#ranked-recovery-controls')&&$('#dialog').open)closeDialog();return;}
@@ -256,7 +257,7 @@ function renderRankedRecovery(){
  const key=match.id+':'+(match.attempt||0);
  if(key===lastRankedRecoveryPrompt||state.busy||$('#dialog').open)return;
  lastRankedRecoveryPrompt=key;
- dialog('<span class="eyebrow">RANKED / DESYNC</span><h2>Continuar el FT.</h2><p>Ambos jugadores deben aceptar. Se abrirá una sesión nueva con el último marcador confirmado por ambos. Si alguien rechaza o la solicitud caduca, el set termina sin puntos.</p><div id="ranked-recovery-controls"></div><p>Al completar el FT: Elo normal y bono de juego limpio, +10 al ganador y +3 al perdedor, una sola vez.</p>');
+ dialog('<span class="eyebrow">RANKED / DESYNC</span><h2>Continuar el FT.</h2><p>Ambos jugadores deben aceptar. Se abrirá una sesión nueva con el último marcador confirmado por ambos. Si alguien rechaza o la solicitud caduca, el set termina sin puntos.</p><div id="ranked-recovery-controls"></div><p>'+esc(recoveryRewardText())+'</p>');
  $('#ranked-recovery-controls').append(recoveryControls(match));
 }
 

@@ -38,9 +38,9 @@ await connected(id,1);
 await call(0,'heartbeat',{match:id,attempt:1,connected:true,completed:true,score:[2,1]});
 assert.equal((await call(0,'poll')).me.rating,1000);
 await call(1,'heartbeat',{match:id,attempt:1,connected:true,completed:true,score:[2,1]});
-let a=await call(0,'poll'),b=await call(1,'poll');assert(a.match.finished);assert.equal(a.me.rating,1012);assert.equal(b.me.rating,988);
-assert.equal(a.me.fairplay_points,10);assert.equal(b.me.fairplay_points,3);assert.equal(a.match.fairplay_delta,10);
-await call(0,'heartbeat',{match:id,attempt:1,completed:true,score:[2,1]});a=await call(0,'poll');assert.equal(a.me.rating,1012);assert.equal(a.me.fairplay_points,10,'Repeated result cannot duplicate the bonus');
+let a=await call(0,'poll'),b=await call(1,'poll');assert(a.match.finished);assert.equal(a.me.rating,1012);assert.equal(b.me.rating,1006);
+assert.equal(a.me.fairplay_points,10);assert.equal(b.me.fairplay_points,0);assert.equal(a.match.fairplay_delta,10);assert.equal(b.match.delta,6);assert.equal(b.match.fairplay_delta,0);assert.equal(b.features.recovery_loser_rating,6);
+await call(0,'heartbeat',{match:id,attempt:1,completed:true,score:[2,1]});a=await call(0,'poll');assert.equal(a.me.rating,1012);assert.equal(a.me.fairplay_points,10,'Repeated result cannot duplicate the bonus');b=await call(1,'poll');assert.equal(b.me.rating,1006,'Repeated result cannot duplicate six ranked points');
 // Declining a paired desync leaves Elo/bonus unchanged, and frees both accounts.
 current=await pair();id=current.match.id;await connected(id,0);await fault(id,0);
 await call(1,'recovery_vote',{match:id,attempt:0,accept:false});a=await call(0,'poll');assert(a.match.finished);assert.equal(a.match.winner,null);assert.equal(a.me.rating,1012);assert.equal(a.me.fairplay_points,10);
@@ -68,4 +68,4 @@ for(let attempt=0;attempt<=3;attempt++){
  assert.equal((await call(0,'poll')).match.attempt,attempt+1);
 }
 assert.equal((await call(0,'poll')).me.fairplay_points,10);
-console.log('PASS: bilateral checkpoints/proofs, opt-in ranked recovery, fresh room/token, attempt fencing, concurrent acceptance, one-time Elo and 10/3 fair-play bonus, decline and expiry');
+console.log('PASS: bilateral checkpoints/proofs, opt-in ranked recovery, fresh room/token, attempt fencing, concurrent acceptance, one-time winner Elo/+10 bonus and loser +6 ranked without loss, decline and expiry');

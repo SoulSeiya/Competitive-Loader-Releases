@@ -1,12 +1,12 @@
 # Rising Battle — Cliente BTC Competitive Edition
 
-Versión 2.1.0 para Windows x64. Salas casuales, amigos, chat, duelos FT y ranked provisional.
+Versión 2.1.1 para Windows x64. Salas casuales, amigos, chat, duelos FT y ranked provisional.
 
 El motor BTC 0.1.38.1 está incluido y permanece fijo. Instala tus propios datos desde una ISO competitiva y una memory compatible. Los paquetes no distribuyen datos de disco, memory, perfiles, credenciales ni registros personales.
 
 Diagnósticos de desync activados por defecto, desactivables desde Ajustes → Diagnósticos. Se capturan jugadores verificados por el servicio, personajes activos, número de traje, escenario y acciones/habilidades observadas. El envío filtra el contenido: no sube los TXT completos. Solo el administrador autorizado puede leer los informes; retención de 14 días.
 
-Ranked FT2 / 360 segundos / 2 personajes. Ambos clientes 2.1 pueden acordar continuar tras un desync coincidente, con el último marcador confirmado por ambos. Elo normal y bono separado de juego limpio (+10/+3) al completar el FT reanudado. La reanudación necesita el servicio 2.1 activo.
+Ranked FT2 / 360 segundos / 2 personajes. Ambos clientes 2.1 pueden acordar continuar tras un desync coincidente, con el último marcador confirmado por ambos. Al completar el FT reanudado, el ganador obtiene Elo normal y +10 de juego limpio separado. El perdedor no pierde Elo y recibe +6 puntos de ranked, sin sumar el bono separado antiguo de +3. La reanudación necesita el servicio 2.1 activo.
 
 Las nuevas versiones del Loader se descargan y verifican en segundo plano. El botón principal ofrece actualizar: pulsa con el juego cerrado y sin búsqueda o ranked activa. No actualiza el motor automáticamente. Los launchers anteriores conservan su interfaz de actualización hasta instalar esta versión.
 

@@ -29,11 +29,12 @@ export function settleRanked(s,m,winner,reason,now){
   if(!winner){m.delta={};return;}
   const loser=m.players.find(id=>id!==winner),a=s.players[winner],b=s.players[loser];
   const delta=Math.min(b.rating,Math.max(1,Math.round(24*(1-1/(1+10**((b.rating-a.rating)/400))))));
-  a.rating+=delta;b.rating=Math.max(0,b.rating-delta);a.played++;b.played++;a.wins++;b.losses++;
-  m.delta={[winner]:delta,[loser]:-delta};
-  if(reason==='resultado'&&m.recovery_enabled&&(m.attempt||0)>0){
-    a.fairplay_points=(a.fairplay_points||0)+10;b.fairplay_points=(b.fairplay_points||0)+3;
-    m.fairplay_delta={[winner]:10,[loser]:3};
+  const recovered=reason==='resultado'&&m.recovery_enabled&&(m.attempt||0)>0;
+  a.rating+=delta;b.rating=recovered?b.rating+6:Math.max(0,b.rating-delta);a.played++;b.played++;a.wins++;b.losses++;
+  m.delta={[winner]:delta,[loser]:recovered?6:-delta};
+  if(recovered){
+    a.fairplay_points=(a.fairplay_points||0)+10;
+    m.fairplay_delta={[winner]:10,[loser]:0};
   }
   if(reason!=='resultado'){b.abandons++;b.blocked_until=now+Math.min(30,2*b.abandons)*60000;}
 }
@@ -75,7 +76,7 @@ function view(s,me,now,h,r=null){
   const current=m?{id:m.id,room_code:m.code,names:m.names,phase:m.phase,finished:m.finished||null,winner:m.winner||null,reason:m.reason||'',delta:m.delta?.[me.id]||0,created:m.created,
     attempt:m.attempt||0,checkpoint:m.checkpoint||[0,0],resume_score:m.resume_score||[0,0],recovery:recoveryView(m,me.id),fairplay_delta:m.fairplay_delta?.[me.id]||0,
     confirming_fault:!!(m.recovery_enabled&&!m.finished&&m.phase!=='recovering'&&Object.keys(m.faults||{}).length)}:null;
-  return {season,provisional:true,rules:rankedRules,features:{desync_resume:1},me:{id:me.id,...p,fairplay_points:p.fairplay_points||0,tier:tier(p.rating)},queued:!!s.queue[me.id],match:current,
+  return {season,provisional:true,rules:rankedRules,features:{desync_resume:1,recovery_loser_rating:6,recovery_winner_fairplay:10},me:{id:me.id,...p,fairplay_points:p.fairplay_points||0,tier:tier(p.rating)},queued:!!s.queue[me.id],match:current,
     leaderboard:Object.entries(s.players).sort((a,b)=>b[1].rating-a[1].rating).slice(0,10).map(([id,p])=>({id,name:p.name,rating:p.rating,played:p.played,tier:tier(p.rating)})),
     history:Object.values(s.matches).filter(m=>m.finished&&m.players.includes(me.id)).slice(-20).reverse().map(m=>({id:m.id,names:m.names,winner:m.winner,reason:m.reason,delta:m.delta?.[me.id]||0,fairplay_delta:m.fairplay_delta?.[me.id]||0,finished:m.finished})),
     ...(m&&!m.finished&&m.phase!=='recovering'&&r?{launch:{...h.snapshot(r,m.tokens[me.id],m.code),_ranked_attempt:m.attempt||0,_ranked_resume_score:m.resume_score||[0,0]}}:{})};
