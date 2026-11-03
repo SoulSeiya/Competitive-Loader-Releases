@@ -450,3 +450,24 @@ class WebClientTests(unittest.TestCase):
             self.assertIsNone(self.api._practice)
             self.assertEqual(envs[0]['BTC_PRECISE_TIMING'],'0')
             self.assertEqual(envs[0]['BTC_FAST_MENU_ART'],'1')
+
+    def test_public_cannot_open_private_reports(self):
+        self.assertFalse(self.api.state()['admin'])
+        self.assertFalse(self.api.command('admin_reports')['ok'])
+
+    def test_forfeit_includes_current_attempt(self):
+        self.api._ranked.snapshot={'match':{'id':'current','attempt':2,'finished':None}}
+        with patch.object(self.api._ranked,'submit') as submit:
+            self.assertTrue(self.api.command('ranked_forfeit')['ok'])
+            submit.assert_called_once_with('forfeit',match='current',attempt=2)
+
+    def test_private_panel_has_no_client_bridge_or_embedded_credentials(self):
+        import sys
+        from unittest.mock import MagicMock
+        fake=MagicMock();self.api._admin=True
+        with patch.dict(sys.modules,{'webview':fake}):
+            self.assertTrue(self.api.command('admin_reports')['ok'])
+        args,kwargs=fake.create_window.call_args
+        self.assertEqual(args[1],'https://btc-rooms.paulogomez41.workers.dev/admin/diagnostics')
+        self.assertNotIn('js_api',kwargs)
+        self.assertNotIn('headers',kwargs)

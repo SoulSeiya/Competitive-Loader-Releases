@@ -60,6 +60,7 @@ class RankedManager:
         self.commands=queue.Queue(maxsize=8);self.launches=queue.Queue();self.stop=threading.Event();self.thread=None
         self._bound_match=None;self._bound_session=None
         self._baseline_serial=0;self._baseline_session=None
+        self._bound_attempt=0
 
     def start(self):
         if self.thread:return
@@ -81,17 +82,22 @@ class RankedManager:
         if self._bound_match!=match['id']:self._bound_match=match['id'];self._bound_session=None
         connected=bool(status.get('serial',0)>self._baseline_serial or (status.get('session')!=self._baseline_session and status.get('serial',0)>0))
         if connected and self._bound_session is None:self._bound_session=status.get('session')
-        closed=bool(self._bound_session and (not status.get('running') or status.get('session')!=self._bound_session))
+        closed=bool(self._bound_session and (not status.get('running') or status.get('session')!=self._bound_session or
+                    (status.get('failed') and not status.get('connected'))))
         return {'match':match['id'],'connected':connected,'closed':closed,'failed':connected and bool(status.get('failed')),
-                'completed':connected and bool(status.get('completed')),'score':status.get('score') if connected and status.get('completed') else None}
+                'completed':connected and bool(status.get('completed')),'score':status.get('score') if connected else None,
+                'attempt':match.get('attempt',0),'desync_proof':status.get('desync_proof') if connected and status.get('failed') else None}
 
     def _receive(self,result):
         match=result.get('match')
-        if match and match['id']!=self._bound_match:
+        if match and (match['id']!=self._bound_match or match.get('attempt',0)!=self._bound_attempt):
             current=self.telemetry();self._baseline_serial=current.get('serial',0);self._baseline_session=current.get('session')
             self._bound_match=match['id'];self._bound_session=None
+            self._bound_attempt=match.get('attempt',0)
         self.snapshot=result;self.error=None
-        self.status=('Buscando un rival compatible…' if result.get('queued') else
+        self.status=('Desync confirmado · elige continuar con el marcador guardado o salir sin puntos.' if match and match.get('phase')=='recovering' and not match.get('finished') else
+                     'Confirmando el desync con el rival…' if match and match.get('confirming_fault') else
+                     'Buscando un rival compatible…' if result.get('queued') else
                      'Rival encontrado. Preparando la partida…' if match and not match.get('finished') and match.get('phase')!='playing' else
                      'Set en curso · continúa en el juego.' if match and not match.get('finished') else
                      'Listo para buscar ranked.')
@@ -99,18 +105,21 @@ class RankedManager:
         if launch:self.launches.put(launch)
 
     def _work(self):
-        client=None;last=0;failures=0
+        client=None;last=0;failures=0;last_heartbeat=None
         while not self.stop.is_set():
             try:
                 if client is None:client=RankedClient(self.store)
                 try:op,values=self.commands.get(timeout=.25)
                 except queue.Empty:op=None;values={}
                 if op:
+                    if op=='queue':values=dict(values,recovery=1)
                     self._receive(client.send(op,**values));last=time.monotonic();failures=0
                 match=(self.snapshot or {}).get('match');active=bool(match and not match.get('finished'))
                 interval=5 if active or (self.snapshot or {}).get('queued') else 25
-                if time.monotonic()-last>=interval:
-                    last=time.monotonic();heartbeat=self._heartbeat() if active else {}
+                heartbeat=self._heartbeat() if active else {}
+                urgent=bool(active and heartbeat!=last_heartbeat and time.monotonic()-last>=1)
+                if time.monotonic()-last>=interval or urgent:
+                    last=time.monotonic();last_heartbeat=heartbeat
                     self._receive(client.send('heartbeat' if heartbeat else 'poll',**heartbeat));failures=0
             except (OSError,RoomError,ValueError) as exc:
                 self.status=str(exc);self.error=str(exc);failures+=1;self.stop.wait(min(25,2**min(failures,4)))

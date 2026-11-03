@@ -100,5 +100,15 @@ int main() {
     assert(s.observe(2));
     s.begin_tick(11, 11, true, false, 1);
     assert(s.setWinner == 2 && s.wins[0] == 0);
+    // A resumed 1:0 FT2 ends after ONE further confirmed P1 win, not two.
+    s.reset();s.begin_tick(0,0,true,false,2);
+    assert(s.restore_score(1,0,2));assert(s.wins[0]==1 && s.wins[1]==0);
+    assert(!s.restore_score(0,1,2)); // a late/repeated seed cannot replace progress
+    assert(s.observe(1));s.begin_tick(1,1,true,false,2);
+    assert(s.setWinner==1 && s.wins[0]==2 && s.wins[1]==0);
+    s.reset();s.begin_tick(0,0,true,false,2);
+    assert(!s.restore_score(2,0,2) && !s.restore_score(0,2,2));
+    assert(s.restore_score(1,1,2));assert(s.observe(2));s.begin_tick(1,1,true,false,2);
+    assert(s.setWinner==2 && s.wins[0]==1 && s.wins[1]==2);
     puts("Score OK: rematches, confirmation, corrected winners, rollback, draws, aborts, session reset.");
 }

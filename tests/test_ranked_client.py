@@ -5,6 +5,26 @@ from session_diagnostics import SessionDiagnostics
 
 
 class RankedClientTests(unittest.TestCase):
+    def test_partial_confirmed_score_and_attempt_are_forwarded_for_checkpoint(self):
+        telemetry={'session':'old','serial':0,'running':True,'connected':False}
+        manager=RankedManager(None,lambda:dict(telemetry))
+        manager._receive({'match':{'id':'set','attempt':0,'finished':None}})
+        telemetry.update(serial=1,connected=True,score=[1,0])
+        beat=manager._heartbeat();self.assertEqual(beat['score'],[1,0]);self.assertFalse(beat['completed']);self.assertEqual(beat['attempt'],0)
+        telemetry.update(failed=True,connected=False,desync_proof={'blank':100,'local_hash':'1'*16,'peer_hash':'2'*16})
+        beat=manager._heartbeat();self.assertTrue(beat['closed']);self.assertEqual(beat['desync_proof']['blank'],100)
+        manager._receive({'match':{'id':'set','attempt':1,'finished':None}})
+        beat=manager._heartbeat();self.assertFalse(beat['failed']);self.assertIsNone(beat['score']);self.assertEqual(beat['attempt'],1)
+        telemetry.update(session='new',serial=1,failed=False,connected=True,score=[1,0])
+        beat=manager._heartbeat();self.assertTrue(beat['connected']);self.assertEqual(beat['score'],[1,0])
+
+    def test_native_resume_score_is_absolute_and_does_not_complete_the_set(self):
+        session=object.__new__(SessionDiagnostics);session.summary={};session.local=MagicMock();session.online=MagicMock();session.report_capture=MagicMock()
+        session.record_engine_line('btc: session_begin online=1')
+        session.record_engine_line('btc: ranked_resume_score P1=1 P2=0 target=2')
+        self.assertEqual(session.summary['ranked_score'],[1,0]);self.assertFalse(session.summary['ranked_completed'])
+        session.record_engine_line('btc: session_begin online=1')
+        self.assertIsNone(session.summary['ranked_score']);self.assertIsNone(session.summary['ranked_desync_proof'])
     def test_search_status_tracks_the_server_instead_of_a_stale_check_label(self):
         manager=RankedManager(None,lambda:{})
         manager._receive({'queued':True})

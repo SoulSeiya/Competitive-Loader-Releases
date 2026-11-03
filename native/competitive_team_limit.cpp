@@ -9,6 +9,7 @@
 #include "team_limit_rules.h"
 extern "C" {
 extern uint32_t gTeamSel;
+extern unsigned char gPad[];
 void TeamSel_Update(void);
 float TeamSel_Input(int *);
 void TeamSel_ClipGoto(int, int, int, char *);
@@ -56,14 +57,36 @@ static void competitiveApplyTeamLimit(const int *before) {
     }
 }
 
+#include "competitive_custom_selection.cpp"
+
 extern "C" float Competitive_TeamSelectInput(int *result) {
+#ifdef BTC_COMBAT_TRACE
+    competitiveTraceNames(gTeamSel);
+#endif
+    competitiveCustomSelection(0);
+    int platesBefore[2] = {-1, -1};
+    if (competitiveCustomMenu())
+        for (int p = 0; p < 2; ++p)
+            if (unsigned char *side = competitiveTeamSide(p))
+                if (int *plate = competitiveMemberPlate(side)) platesBefore[p] = *plate;
     const bool limited = gTeamSel && competitiveTeamCap() < 5;
     int before[2] = {-1, -1};
     if (limited)
         for (int p = 0; p < 2; ++p)
             if (unsigned char *side = competitiveTeamSide(p)) before[p] = *(int *)(side + TeamSideCursor);
+    const unsigned blocked = competitiveCustomConfirmBlock();
+    unsigned pressed[2] = {};
+    for (int p = 0; p < 2; ++p) if (blocked & (1u << p)) {
+        unsigned char *word = gPad + p * 0x1c0 + 0x18c;
+        memcpy(&pressed[p], word, 4);
+        const unsigned filtered = pressed[p] & ~0x200u;
+        memcpy(word, &filtered, 4);
+    }
     const float value = TeamSel_Input(result);
+    for (int p = 0; p < 2; ++p) if (blocked & (1u << p))
+        memcpy(gPad + p * 0x1c0 + 0x18c, &pressed[p], 4);
     if (limited && gTeamSel) competitiveApplyTeamLimit(before);
+    competitiveCustomSelection(platesBefore);
     return value;
 }
 

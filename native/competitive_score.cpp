@@ -40,7 +40,10 @@ static int pendingExitPad = -1;
 static unsigned pendingExitTick;
 // Frozen for each native session; never depends on asynchronous UI state mid-fight.
 static bool rankedStartSession;
+static bool resumeScoreUsed;
 #include "competitive_ranked_input.cpp"
+#include "competitive_combat_trace.cpp"
+#define BTC_COMBAT_TRACE 1
 // ---- offline practice against the CPU (rules from the Loader, read once) ----
 #include "competitive_practice.h"
 static CompetitivePracticeRules practiceRules;
@@ -89,6 +92,7 @@ extern "C" int Competitive_PauseMenuUpdate(int pad, int which) {
     return result;
 }
 #include "competitive_team_limit.cpp"
+#include "competitive_all_selection.cpp"
 #include "competitive_menu_startup.cpp"
 #include "competitive_main_menu.cpp"
 
@@ -97,7 +101,10 @@ extern "C" void Competitive_ScoreBeginTick(unsigned tick) {
     Port_NetBeginTick(tick);
     const bool online = Port_NetSession() != 0;
     const bool practice = !online && competitivePracticeEnabled();
+    competitiveTraceFrontier(online && sRollMax > 0 ? sChecked : tick);
+    competitiveTraceCapture(tick,practice);
     competitiveWindowUpdate(online);
+    bool resumeRestored=false;
     SDL_LockSpinlock(&scoreLock);
     bool newPracticeSet = false;
     if (practice) {
@@ -110,6 +117,13 @@ extern "C" void Competitive_ScoreBeginTick(unsigned tick) {
     const unsigned before = tracker.wins[0] + tracker.wins[1] + tracker.draws;
     tracker.begin_tick(tick, sRollMax > 0 ? sChecked : tick, online || practice, gPortResim != 0,
                        online ? CompetitiveFt(sRules) : practice ? practiceRules.ft : 0);
+    if(online && rankedStartSession && !resumeScoreUsed && tracker.target==2) {
+        const char *seed=SDL_getenv("BTC_RANKED_RESUME_SCORE");
+        resumeScoreUsed=true; // Never reuse the launch's score in a later manual session.
+        if(seed && seed[0]>='0' && seed[0]<='1' && seed[1]==':' && seed[2]>='0' && seed[2]<='1' && !seed[3] &&
+           tracker.restore_score(seed[0]-'0',seed[2]-'0',2))
+            resumeRestored=true;
+    }
     // Battle_Restart is inlined in the reviewed EXE (no direct calls to hook).
     // A cleared native result reliably marks the next fight, including rematches.
     const ScoreBattleResult *result = Battle_GetResult();
@@ -124,6 +138,7 @@ extern "C" void Competitive_ScoreBeginTick(unsigned tick) {
     }
     const unsigned exitTarget = tracker.target;
     SDL_UnlockSpinlock(&scoreLock);
+    if(resumeRestored)ScoreLog(stderr,"btc: ranked_resume_score P1=%u P2=%u target=2\n",a,b);
     if (exitPad >= 0 && exitTarget >= 1 && exitTarget <= 5)
         ScoreLog(stderr, "btc: pause_exit loser=P%d P1=%u P2=%u target=%u\n", exitPad+1,
                  exitPad == 0 ? a : exitTarget, exitPad == 1 ? b : exitTarget, exitTarget);
@@ -140,6 +155,7 @@ extern "C" void Competitive_ScoreBeginTick(unsigned tick) {
 }
 
 extern "C" void Competitive_ScoreSessionBegin(int role, const char *address, int port) {
+    competitiveTraceReset();
     rankedStartSession = risingRankedSession();
     competitiveWindowUpdate(true);
     SDL_LockSpinlock(&scoreLock);
@@ -149,7 +165,8 @@ extern "C" void Competitive_ScoreSessionBegin(int role, const char *address, int
     SDL_UnlockSpinlock(&scoreLock);
     if(role==3) { Port_SessionReturn(); return; }
     Port_NetSessionBegin(role, address, port);
-    ScoreLog(stderr, "btc: session_begin online=%d\n", Port_NetSession() != 0);
+    ScoreLog(stderr, "btc: session_begin online=%d trace_epoch=%u\n", Port_NetSession() != 0,
+             combatTrace ? combatTrace->epoch : 0);
 }
 
 extern "C" void Competitive_ScoreSessionEnd(void) {

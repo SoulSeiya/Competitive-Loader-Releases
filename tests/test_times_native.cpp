@@ -6,6 +6,7 @@ static int loads;
 static int choice;
 static unsigned char setup[0x20];
 extern "C" {
+const char *SDL_getenv(const char *) {return 0;} // Fixture: offline practice is disabled.
 unsigned char gBattleReplay[0x20];
 void *Battle_GetSetup(void) {return setup;}
 void Port_NetRules(int *type,int *dp,int *time) {*type=*dp=0;*time=choice;}

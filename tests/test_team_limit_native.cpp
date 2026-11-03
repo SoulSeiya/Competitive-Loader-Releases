@@ -13,7 +13,7 @@ static unsigned char *lowMemory(){return (unsigned char *)VirtualAlloc((void *)0
 static unsigned char *lowMemory(){void *p=mmap((void *)0x35000000,0x4000,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED_NOREPLACE,-1,0);return p==MAP_FAILED?0:(unsigned char *)p;}
 #endif
 #include "../native/ft_rules.h"
-extern "C" { uint32_t sRules,gTeamSel; }
+extern "C" { uint32_t sRules,gTeamSel; unsigned char gPad[2*0x1c0]; }
 static bool online=true;
 static unsigned practiceCap=0; // 0: no offline practice
 extern "C" int Port_NetSession(){return online;}

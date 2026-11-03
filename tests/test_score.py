@@ -7,6 +7,12 @@ import unittest
 
 
 class ScoreTests(unittest.TestCase):
+    def test_combat_trace_observes_without_modifying_simulation(self):
+        self._native("combat_trace_test.cpp", "combat trace tests passed")
+    def test_single_and_solo_selection_preserve_custom_choices_without_normal(self):
+        self._native("test_all_selection_native.cpp", "All selection screens OK")
+    def test_online_selection_requires_custom_items(self):
+        self._native("test_custom_selection_native.cpp", "Custom selection OK")
     def test_ranked_start_is_blocked_only_during_live_ranked_combat(self):
         self._native("test_ranked_input_native.cpp", "Ranked Start OK")
     def test_team_selection_enforces_cap_and_preserves_edit_navigation(self):

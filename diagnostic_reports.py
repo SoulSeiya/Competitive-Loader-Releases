@@ -30,14 +30,20 @@ class DesyncCapture:
         self.reset()
 
     def reset(self):
-        self.sent=False;self.divergence=None;self.connection='unknown';self.delay=None;self.rollback=None;self.metrics=[]
+        self.sent=False;self.divergence=None;self.connection='unknown';self.delay=None;self.rollback=None;self.metrics=[];self.combat=None;self.trace_epoch=None
 
     def bind(self, context):
         self.context=copy.deepcopy(context)
 
     def line(self, line):
+        if 'btc: combat_trace ' in line and len(line)<24576:
+            from combat_trace import clean_combat
+            try:self.combat=clean_combat(json.loads(line.split('btc: combat_trace ',1)[1]))
+            except (ValueError,TypeError):pass
         if 'connected directly;' in line or 'connected through the relay;' in line:self.reset()
         elif 'btc: session_begin online=1' in line and self.sent:self.reset()
+        epoch=re.search(r'btc: session_begin online=1 trace_epoch=(\d+)',line)
+        if epoch:self.trace_epoch=int(epoch[1]);self.combat=None
         m=FINGERPRINT.search(line)
         if m:self.fingerprint=dict(zip(('total','tables','characters','animations','stages','effects','scripts','menus'),m.groups()))
         if 'connected directly;' in line:self.connection='direct'
@@ -66,11 +72,18 @@ class DesyncCapture:
             if isinstance(value,str) and HASH.fullmatch(value):versions[key]=value
         versions['payload_sha256']={k:v for k,v in self.summary.get('payload_sha256',{}).items()
             if re.fullmatch(r'[A-Za-z0-9_-]{1,80}\.o',k) and isinstance(v,str) and HASH.fullmatch(v)}
-        return {'schema':1,'report_id':uuid.uuid4().hex,'kind':kind,
+        result={'schema':1,'report_id':uuid.uuid4().hex,'kind':kind,
             'context':copy.deepcopy(self.context),'versions':versions,'fingerprint':dict(self.fingerprint),
             'divergence':copy.deepcopy(self.divergence),'network':{'connection':self.connection,
                 'input_delay':self.delay,'rollback':self.rollback,'samples':list(self.metrics)},
-            'character':None,'technique':None}
+            'character':None,'technique':None,'combat':copy.deepcopy(self.combat)}
+        # Leave room for profile/room proof in the 24 KiB receiver envelope.
+        combat=result.get('combat')
+        while combat and len(json.dumps(result).encode('utf-8'))>22000:
+            if len(combat.get('observations',[]))>1:combat['observations'].pop(0)
+            elif len(combat.get('events',[]))>1:combat['events'].pop(0)
+            else:break
+        return result
 
 def duel_context(room):
     combat=(room or {}).get('combat') or {}
@@ -140,6 +153,22 @@ class ReportManager:
         from social_client import credentials, protect
         from rising_service import ServiceClient, DEFAULT_ROOM_SERVICE
         checked=ServiceClient(DEFAULT_ROOM_SERVICE)
+        if report.get('combat'):
+            # Older receivers silently drop unknown DTO fields. Retain the outbox
+            # until the receiver explicitly supports combat evidence.
+            probe=urllib.request.Request(checked.url.removesuffix('/v1/rooms')+'/v1/diagnostics/capabilities',
+                headers={'Accept':'application/json','User-Agent':'RisingBattle-Diagnostics/1'})
+            try:
+                with checked.opener.open(probe,timeout=8) as response:
+                    raw=response.read(8193)
+                    capability=json.loads(raw) if len(raw)<=8192 else {}
+                    needs_stage=any('stage' in row for row in report['combat'].get('observations',[]))
+                    needs_abilities='events' in report['combat']
+                    needs_costume=any('costume' in f for row in report['combat'].get('observations',[]) for f in row.get('sides',[]))
+                    if capability.get('combat_trace')!=1 or (needs_stage and capability.get('stage_trace')!=1) or (needs_abilities and capability.get('ability_trace')!=1) or (needs_costume and capability.get('costume_trace')!=1):raise ValueError('Receptor sin captura de combate/escenario/habilidades/trajes')
+            except Exception as exc:
+                if isinstance(exc,urllib.error.HTTPError):exc.close()
+                raise ValueError('Captura conservada localmente: receptor pendiente') from None
         clean=copy.deepcopy(report);proof=protect(bytes.fromhex(clean.pop('_sealed_proof')),True).decode()
         body=json.dumps(dict(credentials(self.store),room_token=proof,report=clean)).encode()
         request=urllib.request.Request(checked.url.removesuffix('/v1/rooms')+'/v1/diagnostics',body,

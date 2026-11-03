@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {cleanActivity} from './combat_activity.mjs';
+import {cleanCombat} from './combat_diagnostics.mjs';
+const event={blank:123,side:2,character_id:3,character_name:'Goku (Fin)',kind:'ability',ability_class:0,ability_id:111,action_id:253,observed_start:true,input_confirmed:true,stage_id:2};
+const filtered=cleanActivity([{...event,player:'untrusted alias',token:'secret'}],100);
+assert.equal(cleanActivity([{...event,costume:2}],200)[0].costume,2);
+assert.throws(()=>cleanActivity([{...event,costume:0}],200));
+assert.equal(filtered[0].side,2);assert.equal(filtered[0].ability_id,111);assert.equal(filtered[0].input_confirmed,false);
+assert(!JSON.stringify(filtered).includes('untrusted'));assert(!JSON.stringify(filtered).includes('secret'));
+for(const change of [{side:3},{ability_id:32768},{character_name:'x\nsecret'},{kind:'action'},{ability_class:5}])assert.throws(()=>cleanActivity([{...event,...change}],200));
+assert.throws(()=>cleanActivity([event,event],200));assert.throws(()=>cleanActivity(Array(25).fill(event),200));
+const fighter={side:1,roster_id:3,character_id:3,name:'Goku (Fin)',member:0,team_size:2,variant:0,action_id:253,action_class:0,ability_id:111,action_frame:5};
+const trace={source:'native_trace_v1',time_basis:'pre_tick',epoch:1,confirmed_through:123,target_blank:123,nearest_distance:0,observations:[{blank:123,phase:3,resimulated:false,input_confirmed:true,sides:[fighter,{...fighter,side:2}]}],events:[event]};
+assert.equal(cleanCombat(trace).events[0].ability_id,111);assert.equal(cleanCombat(trace).observations[0].sides[0].action_frame,5);
+delete trace.events;assert(!('events' in cleanCombat(trace)));
+console.log('PASS: ability IDs, side attribution, old traces, prediction, bounds and alias filtering');

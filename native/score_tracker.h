@@ -52,6 +52,10 @@ struct ScoreTracker {
         pendingCount = n;
     }
     void new_round() { counted = false; }
+    bool restore_score(unsigned a,unsigned b,unsigned ft) {
+        if(!active || ft<1 || ft>5 || a>=ft || b>=ft || wins[0] || wins[1] || pendingCount || setWinner)return false;
+        wins[0]=a;wins[1]=b;target=ft;return true;
+    }
     bool should_leave(uint32_t tick, bool resim) const {
         return setWinner && !resim && tick >= completedTick && tick - completedTick >= 300;
     }

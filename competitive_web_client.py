@@ -25,7 +25,8 @@ DIRECT_OFFER_TIMEOUT=130 # Service-side challenge lifetime is 120 s.
 
 
 class ClientAPI:
-    def __init__(self, store=None):
+    def __init__(self, store=None, admin=False):
+        self._admin=bool(admin);self._admin_window=None
         (core.HERE/'logs').mkdir(parents=True,exist_ok=True)
         self._store=store or ProfileStore(initial_name=core.load_config().get('btc_player_name','Jugador'))
         from profile_link import ProfileLink
@@ -38,6 +39,8 @@ class ClientAPI:
         self._session=None;self._window=None;self._busy=False;self._status='Listo para jugar.'
         self._lock=threading.Lock();self._closed=threading.Event();self._force_close=False
         self._release=None;self._releases=[];self._release_error='';self._checking=False
+        from background_update import BackgroundUpdate
+        self._update=BackgroundUpdate(core.stage_loader_update)
         self._auto_attempts=set();self._pending_launch=None;self._last_launch=0
         self._last_notice='';self._avatar_stamp=None;self._avatar=''
         self._started=False
@@ -57,6 +60,7 @@ class ClientAPI:
         summary=self._session.summary if self._session else {}
         return {'session':str(self._session.path) if self._session else None,'running':self._running(),
                 'connected':summary.get('ranked_connected',False),'failed':summary.get('ranked_failed',False),
+                'desync_proof':summary.get('ranked_desync_proof'),
                 'score':summary.get('ranked_score'),'completed':summary.get('ranked_completed',False),'serial':summary.get('ranked_serial',0)}
 
     def _ranked_active(self):
@@ -96,6 +100,8 @@ class ClientAPI:
         # Capture ownership before the asynchronous launch: an unrelated ranked poll
         # must never close this process, including after it has been replaced.
         ranked=(self._ranked.snapshot or {}).get('match') or {}
+        if origin=='manual' and ranked.get('attempt',0)>0 and not ranked.get('finished'):
+            raise ValueError('La ranked reanudada abrirá el juego automáticamente con el marcador confirmado.')
         ranked_id=ranked.get('id') if (origin=='duel' and ranked and not ranked.get('finished') and
             self._ranked_launches.get(ranked.get('id'))==self._bridge.invite) else None
         def launch():
@@ -111,6 +117,10 @@ class ClientAPI:
                 self._bridge.runtime=runtime
                 launch_env={'BTC_ROOM_BRIDGE':self._bridge.name,'BT3_NET_NAME':self._store.profile()['name']}
                 launch_env['BTC_RANKED_SESSION']='1' if ranked_id else '0'
+                if ranked_id and ranked.get('attempt',0)>0:
+                    seed=ranked.get('resume_score')
+                    if not isinstance(seed,list) or len(seed)!=2 or any(type(v)is not int or v<0 or v>=2 for v in seed):raise ValueError('Marcador de reanudación inválido')
+                    launch_env['BTC_RANKED_RESUME_SCORE']=str(seed[0])+':'+str(seed[1])
                 if core.load_config().get('fast_start',True):launch_env['BTC_FAST_START']='1'
                 launch_env['BTC_PRECISE_TIMING']='1' if core.load_config().get('precise_timing',False) else '0'
                 launch_env['BTC_FAST_MENU_ART']='1' if core.load_config().get('fast_menu_art',True) else '0'
@@ -134,6 +144,7 @@ class ClientAPI:
             try:
                 info=core.latest_loader_release_info()
                 self._release=info;self._releases=release_history(info)
+                if not self._admin and getattr(sys,'frozen',False) and classify_release(info)=='available':self._update.prepare(info)
             except Exception as exc:self._release_error=str(exc)
             finally:self._checking=False
         threading.Thread(target=worker,name='BTC loader versions',daemon=True).start()
@@ -217,6 +228,25 @@ class ClientAPI:
             self._remember_live_duel(room)
             self._bridge.submit(30,target=target,**rules)
         self._status='Preparando revancha con las mismas reglas…'
+
+    def _request_ranked_recovery(self,accept):
+        match=(self._ranked.snapshot or {}).get('match') or {}
+        if match.get('finished') or match.get('phase')!='recovering':raise ValueError('La revancha por desync ya no está disponible.')
+        def submit():
+            from ranked_client import compatibility_key
+            # Accepting explicitly permits closing the disconnected old game;
+            # a fresh launch is needed for the immutable score seed.
+            if accept and self._running():
+                if self._session.summary.get('ranked_connected'):raise ValueError('Espera a que termine la sesión online interrumpida.')
+                if not self._session.request_close():raise ValueError('Cierra el juego interrumpido para continuar.')
+                deadline=time.monotonic()+18
+                while self._running() and time.monotonic()<deadline:time.sleep(.1)
+                if self._running():raise ValueError('El juego sigue abierto. Ciérralo y acepta nuevamente.')
+            values={'match':match['id'],'attempt':match.get('attempt',0),'accept':accept}
+            if accept:values['compat']=compatibility_key(self._runtime())
+            self._ranked.submit('recovery_vote',**values)
+            self._status='Revancha aceptada; esperando al rival.' if accept else 'Cerrando el set sin puntos.'
+        self._work('Preparando la respuesta a la revancha…',submit,allow_game=True)
 
     def _casual_duel_tick(self):
         room=self._bridge.snapshot or {};combat=room.get('combat') or {}
@@ -310,6 +340,11 @@ class ClientAPI:
                         self._remember_live_duel(launch);self._pending_launch=(launch,time.monotonic()+120)
                 except queue.Empty:pass
                 match=(self._ranked.snapshot or {}).get('match')
+                if match and match.get('phase')=='recovering' and not match.get('finished'):
+                    code=self._ranked_launches.get(match['id'])
+                    if code and self._bridge.invite==code and self._bridge.client:self._bridge.submit(5)
+                    if self._pending_launch and self._pending_launch[0]['room_code']==('BTC-'+match['room_code']):self._pending_launch=None
+                    self._schedule_duel_close(match['id']+':desync:'+str(match.get('attempt',0)),source='ranked recovery',session=self._ranked_game_sessions.get(match['id']))
                 if (match and match.get('finished') and match['id'] not in self._ranked_terminal and
                         not (match['id'] in self._ranked_launches and self._busy and match['id'] not in self._ranked_game_sessions)):
                     # Poll also returns historical sets. Consume them once, but only
@@ -354,7 +389,7 @@ class ClientAPI:
         peer=self._duel_peers.get(self._bridge.invite)
         peer_name=next((f.get('name') for f in (self._social.snapshot or {}).get('friends',[]) if f.get('id')==peer),None)
         duel=present_duel(self._bridge.snapshot,self._last_duel,self._duel_live(),self._store.profile(),peer_name,self._running(),self._busy,self._pending_duel_rules.get(self._bridge.invite))
-        return {'diagnostics':{'enabled':diagnostic_preference(self._store),'status':self._reports.status,'last_report':self._reports.last_id},'duel_view':duel,'profile':self._store.profile(),'identity':dict(self._store.identity_state(),**self._identity.snapshot()),'avatar':self._avatar,'social':self._social.snapshot,
+        return {'admin':self._admin,'update_download':self._update.snapshot(),'diagnostics':{'enabled':diagnostic_preference(self._store),'status':self._reports.status,'last_report':self._reports.last_id},'duel_view':duel,'profile':self._store.profile(),'identity':dict(self._store.identity_state(),**self._identity.snapshot()),'avatar':self._avatar,'social':self._social.snapshot,
                 'social_status':self._social.status,'conversation':self._social.conversation,
                 'room':self._bridge.snapshot,'rooms':self._bridge.directory,'room_code':self._bridge.invite,
                 'status':self._status,'busy':self._busy,'running':self._running(),'ranked_error':self._ranked_validation_error or self._ranked.error,
@@ -503,6 +538,9 @@ class ClientAPI:
                         self._status='Cambios guardados.'
                     self._work('Preparando cambios…',apply)
             elif kind=='rematch':self._request_rematch(str(values.get('battle_id','')))
+            elif kind=='ranked_recovery':
+                if type(values.get('accept')) is not bool:raise ValueError('Respuesta inválida')
+                self._request_ranked_recovery(values['accept'])
             elif kind=='duel_done':
                 if self._last_duel:self._dismissed_duels.add(self._last_duel['combat']['id'])
                 self._last_duel=None;self._pending_rematch=None
@@ -540,17 +578,31 @@ class ClientAPI:
             elif kind=='ranked_forfeit':
                 match=(self._ranked.snapshot or {}).get('match')
                 if not match or match.get('finished'):raise ValueError('No hay un set ranked activo.')
-                self._ranked.submit('forfeit',match=match['id'])
+                self._ranked.submit('forfeit',match=match['id'],attempt=match.get('attempt',0))
             elif kind=='close_chat':self._social.chat_target=None
             elif kind=='check_updates':self._check()
             elif kind=='update':
                 if self._checking or self._release_error or not self._release or classify_release(self._release)!='available':raise ValueError('No hay una actualización disponible y verificada.')
                 if core.online_memory_guard_active() or core._is_game_running():raise ValueError('Cierra el juego antes de actualizar el Loader.')
+                if self._admin:raise ValueError('La edición privada se actualiza con su paquete de administrador.')
+                if self._ranked_reserved():raise ValueError('Cancela la búsqueda o termina la ranked antes de actualizar.')
                 release=dict(self._release)
                 def update():
-                    staged=core.stage_loader_update(release);core.schedule_loader_update(staged)
+                    staged=self._update.wait_ready(release)
+                    core.schedule_loader_update(staged)
                     self._force_close=True;self._window.destroy()
-                self._work('Descargando y verificando el Loader…',update)
+                self._work('Preparando la actualización del Loader…',update)
+            elif kind=='admin_reports':
+                if not self._admin:raise ValueError('Acción solo disponible en la edición privada.')
+                import webview
+                if self._admin_window:
+                    self._admin_window.show();self._admin_window.restore()
+                else:
+                    self._admin_window=webview.create_window('Rising Battle · Reportes privados',
+                        'https://btc-rooms.paulogomez41.workers.dev/admin/diagnostics',
+                        width=1250,height=820,min_size=(820,600),background_color='#080d16')
+                    def clear_admin():self._admin_window=None
+                    self._admin_window.events.closed+=clear_admin
             elif kind=='release_page':webbrowser.open('https://github.com/SoulSeiya/Competitive-Loader-Releases/releases')
             elif kind=='logs':
                 path=core.HERE/'logs';path.mkdir(exist_ok=True);os.startfile(path)
@@ -558,7 +610,7 @@ class ClientAPI:
                 if self._ranked_active():
                     from ranked_client import RankedClient
                     match=self._ranked.snapshot['match']
-                    self._ranked._receive(RankedClient(self._store).send('forfeit',match=match['id']))
+                    self._ranked._receive(RankedClient(self._store).send('forfeit',match=match['id'],attempt=match.get('attempt',0)))
                 self._force_close=True;self._window.destroy()
             else:raise ValueError('Acción no disponible.')
             return {'ok':True}
@@ -581,7 +633,7 @@ class ClientAPI:
             else:self._session.dispose()
 
 
-def main():
+def main(admin=False):
     if '--apply-loader-update' in sys.argv:
         i=sys.argv.index('--apply-loader-update');core.apply_loader_update(int(sys.argv[i+1]),Path(sys.argv[i+2]),Path(sys.argv[i+3]));return
     if '--finish-loader-update' in sys.argv:
@@ -589,9 +641,9 @@ def main():
     try:ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except Exception:pass
     import webview
-    api=ClientAPI()
+    api=ClientAPI(admin=admin)
     smoke='--smoke-web-client' in sys.argv
-    window=webview.create_window('Rising Battle · Competitive Client',str(core.RESOURCE_ROOT/'web_client'/'index.html'),js_api=api,width=1380,height=820,min_size=(820,600),background_color='#080d16',hidden=smoke)
+    window=webview.create_window('Rising Battle · Administrador' if admin else 'Rising Battle · Competitive Client',str(core.RESOURCE_ROOT/'web_client'/'index.html'),js_api=api,width=1380,height=820,min_size=(820,600),background_color='#080d16',hidden=smoke)
     api._window=window;window.events.closing+=api._closing
     def start():
         from window_chrome import apply_dark_titlebar
@@ -604,7 +656,7 @@ def main():
                 result['window_chrome']=chrome
                 result['public_branding']=window.evaluate_js("({label:document.querySelector('.preview b').textContent,version:document.querySelector('.version').textContent,privateVisible:document.body.innerText.includes('CLIENTE PRIVADO'),internalVersionVisible:document.body.innerText.includes('ranked-beta'),footerFits:document.querySelector('.bottom-bar').scrollWidth<=document.querySelector('.bottom-bar').clientWidth})")
                 branding=result['public_branding']
-                if branding['label']!='BETA PÚBLICA' or branding['version']!='RISING BATTLE · '+core.APP_VERSION_TEXT or branding['privateVisible'] or branding['internalVersionVisible']:raise RuntimeError('El paquete público conserva etiquetas internas.')
+                if branding['label']!=('ADMIN PRIVADO' if admin else 'BETA PÚBLICA') or branding['version']!='RISING BATTLE · '+core.APP_VERSION_TEXT or branding['privateVisible'] or branding['internalVersionVisible']:raise RuntimeError('El paquete público conserva etiquetas internas.')
                 window.evaluate_js("showView('duel')")
                 result['duel_view']=window.evaluate_js("({players:document.querySelectorAll('.duel-player').length,status:document.querySelector('#duel-status').textContent,errors:window.btcRenderErrors.slice()})")
                 if result['duel_view']['players']!=2 or result['duel_view']['errors']:raise RuntimeError('Falló la vista de duelo integrada.')
@@ -662,6 +714,25 @@ def main():
                 window.evaluate_js("state=window.rankBackup;showView('home');renderState()")
                 ranked_proof=result['ranked_status_fixture']
                 if ranked_proof['footer']!='Buscando un rival compatible…' or ranked_proof['center']!='Buscando un rival compatible…' or not ranked_proof['cancel'] or not ranked_proof['errorVisible'] or ranked_proof['errors']:raise RuntimeError('Falló el estado visible de ranked.')
+                window.evaluate_js("window.recoveryBackup=state;closeDialog();state={...state,identity:{...state.identity,ready:true},busy:false,room:null,ranked_error:null,ranked:{queued:false,me:{id:'p1',rating:1000,tier:'Bronce',wins:0,losses:0,played:0,fairplay_points:10,blocked_until:0},match:{id:'recovery-fixture',attempt:0,finished:null,phase:'recovering',names:['Jugador 1','Jugador 2'],recovery:{score:[1,0],accepted:false,confirmations:0,expires:Date.now()+120000}},leaderboard:[]}};showView('ranked');renderState()")
+                result['ranked_recovery_fixture']=window.evaluate_js("(()=>{const d=document.querySelector('#dialog'),box=document.querySelector('#ranked-recovery-controls'),b=d.getBoundingClientRect();return{visible:d.open,buttons:box.querySelectorAll('button').length,score:box.textContent.includes('1 : 0'),fits:b.left>=0&&b.right<=innerWidth&&b.top>=0&&b.bottom<=innerHeight,overflow:d.scrollHeight>d.clientHeight,errors:window.btcRenderErrors.slice()}})()")
+                window.evaluate_js("state.ranked.match.recovery.accepted=true;renderState()")
+                result['ranked_recovery_fixture']['acceptedDisabled']=window.evaluate_js("document.querySelector('#ranked-recovery-controls button').disabled")
+                window.evaluate_js("state.ranked.match.phase='connecting';state.ranked.match.attempt=1;state.ranked.match.recovery=null;renderState()")
+                result['ranked_recovery_fixture']['closedOnResume']=window.evaluate_js("!document.querySelector('#dialog').open")
+                window.evaluate_js("state=window.recoveryBackup;showView('home');renderState()")
+                window.evaluate_js("state={...state,admin:true};renderState();showView('reports')")
+                result['admin_fixture']=window.evaluate_js("({visible:document.querySelector('#reports').classList.contains('active'),nav:!document.querySelector('#admin-reports-nav').hidden,label:document.querySelector('#reports').textContent.includes('Desync Match'),fits:document.documentElement.scrollWidth<=innerWidth})")
+                window.evaluate_js("state={...state,admin:false};renderState()")
+                result['admin_fixture']['hiddenForPublic']=window.evaluate_js("document.querySelector('#admin-reports-nav').hidden&&current==='home'")
+                if not all(result['admin_fixture'].values()):raise RuntimeError('La pestaña privada de reportes no cumple su contrato.')
+                window.evaluate_js("window.updateBackup=state;state={...state,installed:false,running:false,busy:false,admin:false,update_state:'available',update_download:{phase:'ready'}};renderState()")
+                result['update_fixture']=window.evaluate_js("({button:document.querySelector('.launch>.primary').textContent,enabled:!document.querySelector('.launch>.primary').disabled})")
+                if result['update_fixture']['button']!='ACTUALIZAR LOADER ↗' or not result['update_fixture']['enabled']:raise RuntimeError('El botón principal no ofrece actualizar el Loader.')
+                window.evaluate_js("state=window.updateBackup;renderState()")
+
+                recovered=result['ranked_recovery_fixture']
+                if not all(recovered[k] for k in ('visible','score','fits','acceptedDisabled','closedOnResume')) or recovered['buttons']!=2 or recovered['overflow'] or recovered['errors']:raise RuntimeError('Falló la interfaz de reanudación ranked: '+json.dumps(recovered))
                 import hashlib
                 result['css_sha256']=hashlib.sha256(result.pop('styles').encode()).hexdigest()
                 manifest=json.loads((core.RESOURCE_ROOT/'web_client'/'design-integrity.json').read_text(encoding='utf-8'))
@@ -669,6 +740,10 @@ def main():
                 (core.HERE/'web-client-smoke.json').write_text(json.dumps(result),encoding='utf-8')
                 if not all(result[k] for k in ('ready','backendLoaded','logo','brand','approved_css_identical')) or result['renderErrors']:
                     raise RuntimeError('Falló la verificación de la interfaz HTML integrada.')
+            except Exception:
+                import traceback
+                (core.HERE/'web-client-smoke-error.txt').write_text(traceback.format_exc(),encoding='utf-8')
+                raise
             finally:api._force_close=True;window.destroy()
         else:api._start()
     window.events.loaded+=start

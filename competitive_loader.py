@@ -29,17 +29,14 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = (2, 0, 3)
+APP_VERSION = (2, 1, 0)
 APP_VERSION_TEXT = ".".join(str(part) for part in APP_VERSION)
 APP_NAME = "Competitive Loader"
 VERSION_HIGHLIGHTS = (
-    "Ranked: el estado de búsqueda se actualiza al finalizar la comprobación y muestra errores del servicio.\n"
-    "Ranked: Start bloqueado durante el combate; selección, resultados, casual y offline conservan controles.\n"
-    "Diagnósticos técnicos automáticos de desync, activados por defecto y desactivables en Ajustes.\n"
-    "Envío opcional de resúmenes de registros anteriores, sin chats, rutas ni archivos del juego.\n"
-    "Panel privado BTC para comparar versiones, datos y primer frame divergente de ambos jugadores.\n"
-    "Ranked: evita asignar una derrota prematura si el juego se cierra tras un desync.\n"
-    "Motor BTC fijo 0.1.38.1; conserva el diseño, reglas FT2/360/2 y parches de combate."
+    "Diagnósticos de desync: jugadores, personajes, trajes, escenarios y habilidades observadas.",
+    "Ranked: continuación tras desync de ambos equipos con marcador confirmado; Elo normal y bono separado de juego limpio.",
+    "El Loader descarga nuevas versiones verificadas en segundo plano y ofrece actualizar desde el botón principal.",
+    "Motor BTC fijo 0.1.38.1; reglas ranked FT2, 360 segundos y 2 personajes.",
 )
 
 COMPETITIVE_SLUS_SHA1 = "28992f0d472bbb6b67cc193bb7d79b8a78bd7feb"
@@ -223,6 +220,10 @@ def use_official_online_profile(exe_path: Path, audio_fix: bool = False, competi
     if session_score and actual == BTC_1381_HASH:
         CALL_WRAPPERS["competitive_score.o"]["vblank_wait"] = "Competitive_PaceWait"
         CALL_WRAPPERS["competitive_score.o"]["Pad_UpdateGameButtons"] = "Competitive_RankedPadUpdate"
+        CALL_WRAPPERS["competitive_score.o"]["CharSel_Input"] = "Competitive_CharSelectInput"
+        CALL_WRAPPERS["competitive_score.o"]["SoloSel_Input"] = "Competitive_SoloSelectInput"
+        CALL_WRAPPERS["competitive_score.o"]["EntrySel_Input"] = "Competitive_EntrySelectInput"
+        CALL_WRAPPERS["competitive_score.o"]["UbTeamSel_Input"] = "Competitive_UbTeamSelectInput"
         CALL_WRAPPERS["competitive_menu_art.o"] = {
             "MenuLabels_Art": "Competitive_MenuArt",
             "MenuLabels_ArtKey": "Competitive_MenuArtKey",

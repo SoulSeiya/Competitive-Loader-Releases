@@ -1,15 +1,19 @@
 # Rising Battle — Cliente BTC Competitive Edition
 
-Versión 2.0.3 para Windows x64. Salas casuales, amigos, chat, duelos FT y ranked provisional.
+Versión 2.1.0 para Windows x64. Salas casuales, amigos, chat, duelos FT y ranked provisional.
 
-El motor BTC 0.1.38.1 está incluido y permanece fijo. Instala tus propios datos desde una ISO competitiva y una memory compatible. El repositorio y los paquetes no distribuyen datos de disco, memory, perfiles ni credenciales.
+El motor BTC 0.1.38.1 está incluido y permanece fijo. Instala tus propios datos desde una ISO competitiva y una memory compatible. Los paquetes no distribuyen datos de disco, memory, perfiles, credenciales ni registros personales.
 
-Diagnósticos de desync activados por defecto, desactivables desde Ajustes → Diagnósticos. El mismo menú permite enviar resúmenes técnicos de los registros anteriores, previa confirmación local. Solo el equipo autorizado puede leer esos informes en su panel privado. Retención visible: 14 días, con limpieza programada.
+Diagnósticos de desync activados por defecto, desactivables desde Ajustes → Diagnósticos. Se capturan jugadores verificados por el servicio, personajes activos, número de traje, escenario y acciones/habilidades observadas. El envío filtra el contenido: no sube los TXT completos. Solo el administrador autorizado puede leer los informes; retención de 14 días.
 
-Consulta RELEASE-NOTES.md para instalación, límites y cambios. El personaje y la técnica todavía no se capturan en los informes.
+Ranked FT2 / 360 segundos / 2 personajes. Ambos clientes 2.1 pueden acordar continuar tras un desync coincidente, con el último marcador confirmado por ambos. Elo normal y bono separado de juego limpio (+10/+3) al completar el FT reanudado. La reanudación necesita el servicio 2.1 activo.
 
-Para construir: instala requirements-build.txt y ejecuta python -m PyInstaller --noconfirm --distpath dist-web --workpath build-web "build_gui/Competitive Web Client.spec". Los módulos nuevos no añaden dependencias de red externas.
+Las nuevas versiones del Loader se descargan y verifican en segundo plano. El botón principal ofrece actualizar: pulsa con el juego cerrado y sin búsqueda o ranked activa. No actualiza el motor automáticamente. Los launchers anteriores conservan su interfaz de actualización hasta instalar esta versión.
 
-Start está bloqueado solo durante el combate ranked activo. Ambos jugadores deben actualizar para compartir la misma compatibilidad.
+Start permite saltar las intros y queda bloqueado en combate entre jugadores; contra CPU mantiene pausa. La selección conserva Personalizado 1/2/3 y bloquea Normal.
 
-2.0.3 corrige los estados y errores de búsqueda ranked; mantiene la compatibilidad de combate de 2.0.2.
+Consulta RELEASE-NOTES.md para cambios y límites de validación. Los metadatos y la última acción registrada no prueban por sí solos la causa de un desync.
+
+Construcción pública: instala requirements-build.txt y ejecuta python -m PyInstaller --noconfirm --distpath dist-web --workpath build-web "build_gui/Competitive Web Client.spec".
+
+La edición privada de administrador añade Reportes y una ventana integrada para el panel remoto protegido por Cloudflare Access. No incorpora secretos. Se distribuye por separado y no se reemplaza mediante el actualizador público.

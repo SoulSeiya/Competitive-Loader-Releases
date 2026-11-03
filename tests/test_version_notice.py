@@ -19,7 +19,9 @@ class VersionNoticeTests(unittest.TestCase):
             app.show_version_notes()
             app.show_version_notes()
             self.assertEqual(show.call_count, 1)
-            self.assertIn(core.VERSION_HIGHLIGHTS, show.call_args.args[1])
+            highlights=core.VERSION_HIGHLIGHTS
+            for highlight in highlights if isinstance(highlights,tuple) else (highlights,):
+                self.assertIn(highlight,show.call_args.args[1])
             marker = Path(folder) / "loader-version-seen.json"
             marker.write_text(json.dumps({"version": "1.1.0"}), encoding="utf-8")
             app.show_version_notes()

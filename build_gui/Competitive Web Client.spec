@@ -2,11 +2,13 @@
 
 from pathlib import Path
 import sysconfig
+import os
+ADMIN = os.environ.get("BTC_ADMIN_BUILD")=="1"
 
 PROJECT = Path(SPECPATH).parent
 
 a = Analysis(
-    [str(PROJECT / 'competitive_web_client.py')],
+    [str(PROJECT / ('admin_client.py' if ADMIN else 'competitive_web_client.py'))],
     pathex=[str(PROJECT)],
     binaries=[],
     datas=[
@@ -40,7 +42,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Competitive Loader',
+    name='Rising Battle Admin' if ADMIN else 'Competitive Loader',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

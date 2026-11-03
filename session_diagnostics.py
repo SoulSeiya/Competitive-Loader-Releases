@@ -41,6 +41,8 @@ class SessionDiagnostics:
         self.running = False
         self._close_event=None
         self._reader = None
+        self._combat_trace = None
+        self._practice_journal = None
         self._initial_crash = self._crash_signature()
         self.local.info("SESSION_START %s", ident)
         self.online.info("SESSION_START %s; esperando actividad de red", ident)
@@ -58,6 +60,19 @@ class SessionDiagnostics:
 
     def record_engine_line(self, line: str):
         line = line.rstrip("\r\n")
+        if getattr(self,'_combat_trace',None) and ('the two games differ at blank' in line or
+                ('the two games no longer agree (desync)' in line.lower() and self.report_capture.combat is None)):
+            import re
+            match=re.search(r'differ at blank (\d+)',line)
+            try:
+                evidence=self._combat_trace.snapshot(int(match[1]) if match else None)
+                if evidence and (self.report_capture.trace_epoch is None or
+                                 evidence['epoch']==self.report_capture.trace_epoch):
+                    trace_line='btc: combat_trace '+json.dumps(evidence,ensure_ascii=True,separators=(',',':'))
+                    self.report_capture.line(trace_line)
+                    self.local.info('%s',trace_line);self.online.info('%s',trace_line)
+            except Exception:
+                self.local.exception('No se pudo copiar la evidencia del combate')
         self.report_capture.line(line)
         self.local.info("GAME %s", line)
         low = line.lower()
@@ -67,9 +82,14 @@ class SessionDiagnostics:
             self.summary['ranked_completed']=False
             self.summary['ranked_failed']=False
             self.summary['ranked_score']=None
+            self.summary['ranked_desync_proof']=None
             self.summary['duel_exit_score']=None
         elif 'btc: session_end' in low:
             self.summary['ranked_connected']=False
+        if 'btc: ranked_resume_score ' in low:
+            import re
+            restored=re.search(r'P1=([01]) P2=([01]) target=2',line)
+            if restored:self.summary['ranked_score']=[int(restored[1]),int(restored[2])]
         if 'btc: pause_exit' in low or 'btc: set_result' in low:
             import re
             outcome=re.search(r'P1=(\d+) P2=(\d+) target=(\d+)',line)
@@ -91,6 +111,7 @@ class SessionDiagnostics:
         if "the two games differ" in low or "the two games no longer agree" in low or "(desync)" in low:
             self.summary["desync_observed"] = True
             self.summary["ranked_failed"] = True
+            if self.report_capture.divergence:self.summary['ranked_desync_proof']=dict(self.report_capture.divergence)
 
     def _read_output(self, fd: int):
         try:
@@ -147,8 +168,23 @@ class SessionDiagnostics:
         try:
             launch_env = {"BT3_GS_VERBOSE": "1", "BTC_CLIENT_CLOSE_EVENT":close_name}
             launch_env.update(env or {})
+            from combat_trace import CombatTrace
+            try:
+                self._combat_trace=CombatTrace()
+                launch_env['BTC_DIAGNOSTIC_TRACE_MAP']=self._combat_trace.name
+            except (OSError,ValueError):
+                self.local.warning('Captura de personajes no disponible; se conservan los diagnósticos normales')
             pid = core.launch_patched(exe, image, game_output_fd=write_fd, env=launch_env)
+            if self._combat_trace:
+                from combat_trace import PracticeCharacterJournal
+                try:
+                    self._practice_journal=PracticeCharacterJournal(self._combat_trace,self.path,cpu=bool(launch_env.get('BTC_PRACTICE_FT')))
+                    self._practice_journal.start()
+                    self.local.info('COMBAT_ACTIVITY_LOG %s',self._practice_journal.actions_text)
+                except (OSError,ValueError):
+                    self.local.warning('Registro local de acciones no disponible')
         except Exception:
+            self._release_combat_trace()
             self._release_close_event();raise
         finally:
             os.close(write_fd)
@@ -192,7 +228,16 @@ class SessionDiagnostics:
                 kernel.CloseHandle(handle)
             core._release_online_memory_handles()
             self.running = False
+            self._release_combat_trace()
             self._release_close_event()
+
+    def _release_combat_trace(self):
+        journal=getattr(self,'_practice_journal',None);self._practice_journal=None
+        if journal:
+            try:journal.close()
+            except (OSError,ValueError):pass
+        trace=self._combat_trace;self._combat_trace=None
+        if trace:trace.close()
 
     def finish(self, status: str):
         crash = self._crash_signature()
